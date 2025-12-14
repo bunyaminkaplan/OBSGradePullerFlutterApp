@@ -1,6 +1,5 @@
 class AppConstants {
-  static const String obsLoginUrl =
-      "https://obs.ozal.edu.tr/oibs/std/login.aspx";
+  static const String loginEndpoint = "/oibs/std/login.aspx";
 
   // Slicing Coordinates (x_start, x_end)
   // Height is always 40

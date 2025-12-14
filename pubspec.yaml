@@ -43,6 +43,7 @@ dependencies:
   tflite_flutter: ^0.12.1
   flutter_secure_storage: ^10.0.0
   shimmer: ^3.0.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -78,6 +79,7 @@ flutter:
 
   assets:
     - assets/digit_model.tflite
+    - assets/digit_model_old.tflite
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

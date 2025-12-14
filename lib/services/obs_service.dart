@@ -34,6 +34,7 @@ class ObsService {
     }
     // Save to storage
     await _storageService.saveUniversityUrl(_baseUrl);
+    _updateHeaders();
     return newName;
   }
 
@@ -42,24 +43,27 @@ class ObsService {
     if (saved != null && (saved == _ozalUrl || saved == _inonuUrl)) {
       _baseUrl = saved;
     }
+    _updateHeaders();
   }
 
   ObsService() {
     // _dio = Dio(); // Removed as _dio is now final and initialized at declaration
-    _dio.options.headers = {
-      'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Referer': "$_baseUrl/oibs/std/login.aspx",
-      'Origin': _baseUrl,
-      'Cache-Control': 'no-cache',
-    };
+    // We will handle redirects manually for Login to ensure cookies stick
+    _dio.options.followRedirects = true;
+    _dio.options.validateStatus = (status) => status != null && status < 500;
 
     _cookieJar = CookieJar();
     _dio.interceptors.add(CookieManager(_cookieJar));
 
-    // We will handle redirects manually for Login to ensure cookies stick
-    _dio.options.followRedirects = true;
-    _dio.options.validateStatus = (status) => status != null && status < 500;
+    _updateHeaders();
+  }
+
+  void _updateHeaders() {
+    _dio.options.headers['User-Agent'] =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    _dio.options.headers['Referer'] = "$_baseUrl${AppConstants.loginEndpoint}";
+    _dio.options.headers['Origin'] = _baseUrl;
+    _dio.options.headers['Cache-Control'] = 'no-cache';
   }
 
   /// Auto Login Loop with AI Captcha (Max 3 Attempts)
@@ -99,7 +103,7 @@ class ObsService {
   /// 1. Fetch Login Page
   Future<Uint8List?> fetchLoginPage() async {
     try {
-      String loginUrl = "$_baseUrl/oibs/std/login.aspx";
+      String loginUrl = "$_baseUrl${AppConstants.loginEndpoint}";
       print("Fetching Login Page: $loginUrl");
       Response response = await _dio.get(loginUrl);
 
@@ -153,7 +157,7 @@ class ObsService {
 
       // Manual Redirect Step 1: POST
       Response response = await _dio.post(
-        AppConstants.obsLoginUrl,
+        "$_baseUrl${AppConstants.loginEndpoint}",
         data: FormData.fromMap(payload),
         options: Options(
           followRedirects: false, // Critical: Handle 302 manually
