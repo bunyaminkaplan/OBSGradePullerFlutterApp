@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import '../core/constants.dart';
+import '../domain/services/captcha_service_interface.dart';
 
-class CaptchaService {
+class CaptchaService implements ICaptchaService {
   Interpreter? _interpreter;
   Interpreter? _interpreterOld;
 
+  @override
   Future<void> loadModel() async {
     try {
       _interpreter = await Interpreter.fromAsset('assets/digit_model.tflite');
@@ -22,6 +24,7 @@ class CaptchaService {
   }
 
   /// Main function to solve captcha
+  @override
   Future<String?> solveCaptcha(Uint8List imageBytes) async {
     if (_interpreter == null || _interpreterOld == null) await loadModel();
     if (_interpreter == null || _interpreterOld == null) return null;
