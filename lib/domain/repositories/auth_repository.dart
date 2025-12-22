@@ -6,4 +6,5 @@ abstract class AuthRepository {
   Future<Uint8List?> fetchCaptchaImage();
   Future<void> logout();
   Future<UserEntity?> getCurrentUser();
+  void setBaseUrl(String url);
 }

@@ -5,10 +5,15 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import '../core/constants.dart';
 import '../domain/services/captcha_service_interface.dart';
+import '../core/services/logger_service.dart';
 
 class CaptchaService implements ICaptchaService {
   Interpreter? _interpreter;
   Interpreter? _interpreterOld;
+  final LoggerService _logger; // Logger eklendi
+
+  CaptchaService([LoggerService? logger])
+    : _logger = logger ?? LoggerService(); // Constructor update
 
   @override
   Future<void> loadModel() async {
@@ -17,9 +22,9 @@ class CaptchaService implements ICaptchaService {
       _interpreterOld = await Interpreter.fromAsset(
         'assets/digit_model_old.tflite',
       );
-      print("TFLite models loaded successfully (New & Old).");
+      _logger.info("TFLite models loaded successfully (New & Old).");
     } catch (e) {
-      print("Error loading models: $e");
+      _logger.error("Error loading models: $e", error: e);
     }
   }
 
@@ -71,7 +76,7 @@ class CaptchaService implements ICaptchaService {
     // --- FALLBACK CHECK ---
     // If not exactly 3 digits found, fallback to OLD SYSTEM
     if (boxes.length != 3) {
-      print(
+      _logger.warning(
         "⚠️ Dynamic segmentation found ${boxes.length} digits. Switching to OLD MODEL Fallback.",
       );
       return await _solveFallback(fullImage);
@@ -120,7 +125,9 @@ class CaptchaService implements ICaptchaService {
     // If we have nulls even after boxes==3, it implies overlap or bad localization.
     bool hasNull = finalImages.any((element) => element == null);
     if (hasNull) {
-      print("⚠️ Slot mapping ambiguity. Switching to OLD MODEL Fallback.");
+      _logger.warning(
+        "⚠️ Slot mapping ambiguity. Switching to OLD MODEL Fallback.",
+      );
       return await _solveFallback(fullImage);
     }
 

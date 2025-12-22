@@ -4,6 +4,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:html/parser.dart' show parse;
 import '../../core/constants.dart';
 import '../../core/exceptions/server_exception.dart';
+import '../../core/services/logger_service.dart';
 
 /// ---------------------------------------------------------------------------
 /// AUTH REMOTE DATA SOURCE
@@ -11,11 +12,12 @@ import '../../core/exceptions/server_exception.dart';
 class AuthRemoteDataSource {
   final Dio _dio;
   final CookieJar _cookieJar;
+  final LoggerService _logger;
 
   final Map<String, String> _hiddenInputs = {};
   String _baseUrl = "https://obs.ozal.edu.tr";
 
-  AuthRemoteDataSource(this._dio, this._cookieJar);
+  AuthRemoteDataSource(this._dio, this._cookieJar, this._logger);
 
   void setBaseUrl(String url) {
     _baseUrl = url;
@@ -28,48 +30,48 @@ class AuthRemoteDataSource {
   Future<Uint8List?> fetchLoginPage({bool isRetry = false}) async {
     try {
       String loginUrl = "$_baseUrl${AppConstants.loginEndpoint}";
-      print(
+      _logger.info(
         "MİMARİ LOG: Login Sayfası İsteniyor (Retry: $isRetry) -> $loginUrl",
       );
 
       Response response = await _dio.get(loginUrl);
-      print(
+      _logger.info(
         "MİMARİ LOG: Sayfa Yanıtı: ${response.statusCode} (Length: ${response.data.length})",
       );
 
       _parseAndCacheHiddenInputs(response.data);
-      print("MİMARİ LOG: Hidden Inputs Sayısı: ${_hiddenInputs.length}");
+      _logger.info("MİMARİ LOG: Hidden Inputs Sayısı: ${_hiddenInputs.length}");
 
       var document = parse(response.data);
       var img = document.querySelector('#imgCaptchaImg');
 
       if (img != null) {
         String? src = img.attributes['src'];
-        print("MİMARİ LOG: Captcha Resim Src: $src");
+        _logger.debug("MİMARİ LOG: Captcha Resim Src: $src");
 
         if (src != null) {
           String fullUrl = "$_baseUrl/oibs/captcha/CaptchaImg.aspx";
           if (!src.startsWith("..")) {
             fullUrl = "$_baseUrl/oibs/" + src.replaceAll("../", "");
           }
-          print("MİMARİ LOG: Captcha Full URL: $fullUrl");
+          _logger.debug("MİMARİ LOG: Captcha Full URL: $fullUrl");
 
           Response<List<int>> imgResponse = await _dio.get<List<int>>(
             fullUrl,
             options: Options(responseType: ResponseType.bytes),
           );
-          print(
+          _logger.info(
             "MİMARİ LOG: Captcha İndirildi (${imgResponse.data?.length} bytes)",
           );
 
           return Uint8List.fromList(imgResponse.data!);
         }
       } else {
-        print("MİMARİ LOG: HATA - #imgCaptchaImg bulunamadı!");
+        _logger.error("MİMARİ LOG: HATA - #imgCaptchaImg bulunamadı!");
 
         // Critical Fix: Session stuck on Error Page logic
         if (!isRetry) {
-          print(
+          _logger.warning(
             "MİMARİ LOG: ⚠️ Session bozulmuş olabilir. Cookie temizlenip tekrar deneniyor...",
           );
           await _cookieJar.deleteAll();
@@ -82,7 +84,7 @@ class AuthRemoteDataSource {
         }
       }
     } catch (e) {
-      print("Kritik Hata (FetchLogin): $e");
+      _logger.error("Kritik Hata (FetchLogin): $e", error: e);
       throw ServerException(
         message: "Login sayfası yüklenirken hata oluştu: $e",
       );
@@ -116,7 +118,7 @@ class AuthRemoteDataSource {
         ),
       );
 
-      print("Login Yanıt Kodu: ${response.statusCode}");
+      _logger.info("Login Yanıt Kodu: ${response.statusCode}");
 
       if (response.statusCode == 302) {
         String? location = response.headers.value('location');
@@ -137,7 +139,7 @@ class AuthRemoteDataSource {
 
       return false;
     } catch (e) {
-      print("Login Exception: $e");
+      _logger.error("Login Exception: $e", error: e);
       throw ServerException(message: "Giriş işlemi sırasında hata: $e");
     }
   }

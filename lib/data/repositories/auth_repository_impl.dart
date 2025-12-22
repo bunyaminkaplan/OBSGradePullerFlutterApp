@@ -36,6 +36,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  void setBaseUrl(String url) {
+    _remoteDataSource.setBaseUrl(url);
+  }
+
+  @override
   Future<UserEntity?> getCurrentUser() async {
     return null;
   }

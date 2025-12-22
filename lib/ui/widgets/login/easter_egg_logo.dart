@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../painters/ripple_painter.dart'; // Fixed import path
-import '../../../services/obs_service.dart';
 import '../../../viewmodels/login_view_model.dart';
 
 class EasterEggLogo extends StatefulWidget {
@@ -37,8 +36,8 @@ class _EasterEggLogoState extends State<EasterEggLogo>
   void _handlePointerDown() {
     _easterEggTimer?.cancel();
     _easterEggTimer = Timer(const Duration(seconds: 5), () async {
-      final obs = context.read<ObsService>();
-      final uniName = await obs.toggleUniversity();
+      final viewModel = context.read<LoginViewModel>();
+      final uniName = await viewModel.toggleUniversity();
       if (mounted) {
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -47,8 +46,7 @@ class _EasterEggLogoState extends State<EasterEggLogo>
             backgroundColor: Colors.blueAccent,
           ),
         );
-        // Reload captcha implies re-fetching page with new Base URL
-        context.read<LoginViewModel>().loadCaptcha();
+        // context.read<LoginViewModel>().loadCaptcha(); // Done in toggleUniversity
       }
     });
   }

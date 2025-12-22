@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../services/theme_service.dart';
-import '../services/obs_service.dart';
+
 import '../viewmodels/login_view_model.dart';
 import 'grades_screen.dart';
 
@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen>
     final showHint = await _storage.shouldShowHint();
 
     if (mounted) {
-      await context.read<ObsService>().loadSavedUrl();
+      await context.read<LoginViewModel>().loadInitialSettings();
       setState(() {
         _profiles = list;
         _showHint = showHint;
@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen>
           _showManualLogin = false;
         }
         // Always load captcha to initialize session/viewstate for one-tap login
-        context.read<LoginViewModel>().loadCaptcha();
+        // context.read<LoginViewModel>().loadCaptcha(); // Done in loadInitialSettings
       });
     }
   }

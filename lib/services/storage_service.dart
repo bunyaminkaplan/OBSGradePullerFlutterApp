@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'dart:developer'
+    as developer; // Or direct developer usage since it's simple
+
 class StorageService {
   final _storage = const FlutterSecureStorage();
 
@@ -26,7 +29,7 @@ class StorageService {
       List<dynamic> list = jsonDecode(jsonStr);
       return list.map((e) => Map<String, String>.from(e)).toList();
     } catch (e) {
-      print("Storage Error: $e");
+      developer.log("Storage Error: $e", name: "ERROR");
       return [];
     }
   }
@@ -80,7 +83,7 @@ class StorageService {
     String? oldPass = await _storage.read(key: _keyPassLegacy);
 
     if (oldUser != null && oldPass != null) {
-      print("Migrating legacy user: $oldUser");
+      developer.log("Migrating legacy user: $oldUser", name: "INFO");
       // Read existing profiles directly to avoid loop
       String? jsonStr = await _storage.read(key: _keyProfiles);
       List<dynamic> list = jsonStr != null ? jsonDecode(jsonStr) : [];

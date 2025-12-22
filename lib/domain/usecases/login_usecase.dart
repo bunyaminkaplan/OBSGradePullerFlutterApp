@@ -12,4 +12,8 @@ class LoginUseCase {
   ) {
     return repository.login(studentNumber, password, captchaCode);
   }
+
+  Future<void> logout() {
+    return repository.logout();
+  }
 }

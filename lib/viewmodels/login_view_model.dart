@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../domain/usecases/login_usecase.dart';
 import '../domain/usecases/get_captcha_usecase.dart';
 import '../domain/usecases/auto_login_usecase.dart';
+import '../domain/usecases/toggle_university_usecase.dart';
 import '../services/captcha_service.dart';
+import '../core/services/logger_service.dart';
 
 enum LoginState { initial, loading, success, failure }
 
@@ -11,7 +13,9 @@ class LoginViewModel extends ChangeNotifier {
   final LoginUseCase _loginUseCase;
   final GetCaptchaUseCase _getCaptchaUseCase;
   final AutoLoginUseCase _autoLoginUseCase;
+  final ToggleUniversityUseCase _toggleUniversityUseCase;
   final CaptchaService _captchaService;
+  final LoggerService _logger; // Logger eklendi
 
   LoginState _state = LoginState.initial;
   String _errorMessage = '';
@@ -22,11 +26,26 @@ class LoginViewModel extends ChangeNotifier {
     required LoginUseCase loginUseCase,
     required GetCaptchaUseCase getCaptchaUseCase,
     required AutoLoginUseCase autoLoginUseCase,
+    required ToggleUniversityUseCase toggleUniversityUseCase,
     required CaptchaService captchaService,
+    LoggerService? logger, // Opsiyonel parametre
   }) : _loginUseCase = loginUseCase,
        _getCaptchaUseCase = getCaptchaUseCase,
        _autoLoginUseCase = autoLoginUseCase,
-       _captchaService = captchaService;
+       _toggleUniversityUseCase = toggleUniversityUseCase,
+       _captchaService = captchaService,
+       _logger = logger ?? LoggerService();
+
+  Future<void> loadInitialSettings() async {
+    await _toggleUniversityUseCase.loadSavedUrl();
+    await loadCaptcha(); // Load captcha after setting URL
+  }
+
+  Future<String> toggleUniversity() async {
+    final name = await _toggleUniversityUseCase.execute();
+    await loadCaptcha(); // Reload captcha from new university
+    return name;
+  }
 
   LoginState get state => _state;
   String get errorMessage => _errorMessage;
@@ -78,7 +97,7 @@ class LoginViewModel extends ChangeNotifier {
 
       if (manualCaptcha != null) {
         // MANUAL LOGIN (Single Attempt)
-        print("MİMARİ LOG: Manual Login requested.");
+        _logger.info("MİMARİ LOG: Manual Login requested.");
         success = await _loginUseCase.execute(
           studentNumber,
           password,
@@ -86,7 +105,7 @@ class LoginViewModel extends ChangeNotifier {
         );
       } else {
         // AUTO LOGIN (Retry Logic in UseCase)
-        print("MİMARİ LOG: Auto Login requested (Smart Retry).");
+        _logger.info("MİMARİ LOG: Auto Login requested (Smart Retry).");
         success = await _autoLoginUseCase.execute(studentNumber, password);
       }
 
@@ -101,6 +120,7 @@ class LoginViewModel extends ChangeNotifier {
     } catch (e) {
       _errorMessage = "Hata: $e";
       _state = LoginState.failure;
+      _logger.error("Login View Model Error", error: e);
     }
 
     notifyListeners();
@@ -109,5 +129,11 @@ class LoginViewModel extends ChangeNotifier {
       loadCaptcha();
     }
     return false;
+  }
+
+  Future<void> logout() async {
+    await _loginUseCase.logout();
+    _state = LoginState.initial;
+    notifyListeners();
   }
 }

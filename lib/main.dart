@@ -6,8 +6,9 @@ import 'package:cookie_jar/cookie_jar.dart';
 
 // Services
 import 'services/captcha_service.dart';
-import 'services/obs_service.dart'; // Legacy, kept for non-refactored parts
+
 import 'services/theme_service.dart';
+import 'core/services/logger_service.dart';
 
 // Data Layer
 import 'data/datasources/auth_remote_data_source.dart';
@@ -16,12 +17,22 @@ import 'data/repositories/auth_repository_impl.dart';
 
 // Domain Layer
 import 'domain/repositories/auth_repository.dart';
+import 'domain/repositories/settings_repository.dart';
+import 'domain/repositories/grades_repository.dart';
 import 'domain/usecases/login_usecase.dart';
 import 'domain/usecases/get_captcha_usecase.dart';
 import 'domain/usecases/auto_login_usecase.dart';
+import 'domain/usecases/toggle_university_usecase.dart';
+import 'domain/usecases/get_grades_usecase.dart';
+import 'domain/usecases/get_grade_details_usecase.dart';
+import 'services/storage_service.dart';
+import 'data/repositories/settings_repository_impl.dart';
+import 'data/repositories/grades_repository_impl.dart';
 
 // Presentation Layer
 import 'viewmodels/login_view_model.dart';
+import 'viewmodels/grades_view_model.dart';
+
 import 'ui/login_screen.dart';
 
 void main() {
@@ -34,34 +45,44 @@ void main() {
   dio.options.validateStatus = (status) => status != null && status < 500;
   dio.interceptors.add(CookieManager(cookieJar)); // Use shared instance
 
-  // Custom headers default
+  // Custom headers default (Matching old ObsService exactly)
+  const defaultBaseUrl = "https://obs.ozal.edu.tr";
   dio.options.headers['User-Agent'] =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  dio.options.headers['Referer'] = "$defaultBaseUrl/oibs/std/login.aspx";
+  dio.options.headers['Origin'] = defaultBaseUrl;
+  dio.options.headers['Cache-Control'] = 'no-cache';
 
   runApp(
     MultiProvider(
       providers: [
         // Services
         Provider<CaptchaService>(create: (_) => CaptchaService()),
-        Provider<ObsService>(
-          create: (_) => ObsService(dio),
-        ), // Legacy Service with Shared Session
         ChangeNotifierProvider(create: (_) => ThemeService()),
+        Provider<LoggerService>(create: (_) => LoggerService()),
 
         // Data Sources
         Provider<AuthRemoteDataSource>(
           create: (context) => AuthRemoteDataSource(
             dio,
             cookieJar, // Injected CookieJar
+            context.read<LoggerService>(),
           ),
         ),
         Provider<GradesRemoteDataSource>(
-          create: (_) => GradesRemoteDataSource(dio),
+          create: (context) => GradesRemoteDataSource(
+            dio,
+            context.read<AuthRemoteDataSource>(),
+            context.read<LoggerService>(),
+          ),
         ),
 
         // Repositories
         ProxyProvider<AuthRemoteDataSource, AuthRepository>(
           update: (_, dataSource, __) => AuthRepositoryImpl(dataSource),
+        ),
+        ProxyProvider<GradesRemoteDataSource, IGradesRepository>(
+          update: (_, dataSource, __) => GradesRepositoryImpl(dataSource),
         ),
 
         // UseCases
@@ -72,8 +93,32 @@ void main() {
           update: (_, repo, __) => GetCaptchaUseCase(repo),
         ),
         ProxyProvider2<AuthRepository, CaptchaService, AutoLoginUseCase>(
-          update: (_, repo, captchaService, __) =>
-              AutoLoginUseCase(repo, captchaService),
+          update: (context, repo, captchaService, __) => AutoLoginUseCase(
+            repo,
+            captchaService,
+            context.read<LoggerService>(),
+          ),
+        ),
+
+        // Settings & Storage
+        Provider<StorageService>(create: (_) => StorageService()),
+        ProxyProvider<StorageService, ISettingsRepository>(
+          update: (_, storage, __) => SettingsRepositoryImpl(storage),
+        ),
+        ProxyProvider2<
+          ISettingsRepository,
+          AuthRepository,
+          ToggleUniversityUseCase
+        >(
+          update: (_, settingsRepo, authRepo, __) =>
+              ToggleUniversityUseCase(settingsRepo, authRepo),
+        ),
+
+        ProxyProvider<IGradesRepository, GetGradesUseCase>(
+          update: (_, repo, __) => GetGradesUseCase(repo),
+        ),
+        ProxyProvider<IGradesRepository, GetGradeDetailsUseCase>(
+          update: (_, repo, __) => GetGradeDetailsUseCase(repo),
         ),
 
         // ViewModels
@@ -82,7 +127,15 @@ void main() {
             loginUseCase: context.read<LoginUseCase>(),
             getCaptchaUseCase: context.read<GetCaptchaUseCase>(),
             autoLoginUseCase: context.read<AutoLoginUseCase>(),
+            toggleUniversityUseCase: context.read<ToggleUniversityUseCase>(),
             captchaService: context.read<CaptchaService>(),
+            logger: context.read<LoggerService>(),
+          ),
+        ),
+        ChangeNotifierProvider<GradesViewModel>(
+          create: (context) => GradesViewModel(
+            getGradesUseCase: context.read<GetGradesUseCase>(),
+            getGradeDetailsUseCase: context.read<GetGradeDetailsUseCase>(),
           ),
         ),
       ],
