@@ -111,8 +111,9 @@ class AuthRemoteDataSource {
 
       Response response = await _dio.post(
         "$_baseUrl${AppConstants.loginEndpoint}",
-        data: FormData.fromMap(payload),
+        data: payload, // Pass Map directly for url-encoded
         options: Options(
+          contentType: Headers.formUrlEncodedContentType,
           followRedirects: false,
           validateStatus: (status) => true,
         ),

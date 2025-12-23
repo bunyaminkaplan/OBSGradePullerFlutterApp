@@ -1,17 +1,22 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../viewmodels/login_view_model.dart';
 import '../../../services/storage_service.dart';
+import '../../grades_screen.dart'; // Navigation target
+import '../common/shimmer_box.dart';
 
 class LoginManualForm extends StatefulWidget {
   final VoidCallback onCancel; // To go back to profiles
   final bool showCancelButton; // Only show if profiles exist
+  final String? initialUsername;
+  final String? initialPassword;
 
   const LoginManualForm({
     super.key,
     required this.onCancel,
     this.showCancelButton = false,
+    this.initialUsername,
+    this.initialPassword,
   });
 
   @override
@@ -19,11 +24,31 @@ class LoginManualForm extends StatefulWidget {
 }
 
 class _LoginManualFormState extends State<LoginManualForm> {
-  final _userController = TextEditingController();
-  final _passController = TextEditingController();
+  late final TextEditingController _userController;
+  late final TextEditingController _passController;
   final _captchaController = TextEditingController();
   final _aliasController = TextEditingController();
   final _storage = StorageService();
+
+  @override
+  void initState() {
+    super.initState();
+    _userController = TextEditingController(text: widget.initialUsername);
+    _passController = TextEditingController(text: widget.initialPassword);
+  }
+
+  @override
+  void didUpdateWidget(covariant LoginManualForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialUsername != oldWidget.initialUsername &&
+        widget.initialUsername != null) {
+      _userController.text = widget.initialUsername!;
+    }
+    if (widget.initialPassword != oldWidget.initialPassword &&
+        widget.initialPassword != null) {
+      _passController.text = widget.initialPassword!;
+    }
+  }
 
   bool _rememberMe = false;
 
@@ -44,9 +69,12 @@ class _LoginManualFormState extends State<LoginManualForm> {
     final manualCaptcha = _captchaController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Lütfen bilgileri girin")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Lütfen bilgileri girin"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 
@@ -63,13 +91,22 @@ class _LoginManualFormState extends State<LoginManualForm> {
         if (alias.isEmpty) alias = username;
         await _storage.saveProfile(username, password, alias);
       }
-      // Navigation is handled by the parent listener or here?
-      // Ideally parent listener handles navigation to keep this widget dumb about routing.
+
+      // Navigate to GradesScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const GradesScreen()),
+      );
     } else if (!success && mounted) {
       _captchaController.clear();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(viewModel.errorMessage)));
+      // Error is handled by SnackBar in view model consumer or logic above
+      // But we show it here just in case if not handled elsewhere
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(viewModel.errorMessage),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -77,84 +114,71 @@ class _LoginManualFormState extends State<LoginManualForm> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<LoginViewModel>();
     final isLoading = viewModel.state == LoginState.loading;
-    final error = viewModel.errorMessage;
 
     // Auto-fill Captcha Logic
     if (viewModel.captchaCode.isNotEmpty &&
         _captchaController.text.isEmpty &&
         !isLoading) {
-      // Only set if field is empty to allow manual override
-      // _captchaController.text = viewModel.captchaCode;
-      // Better: Just show hint text or let user tap to fill
+      _captchaController.text = viewModel.captchaCode;
     }
 
     return Column(
       children: [
-        if (isLoading) ...[
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(error.isNotEmpty ? error : "İşleniyor..."),
-        ] else ...[
-          _textField(_userController, "Öğrenci No", Icons.person_outline),
-          const SizedBox(height: 16),
-          _textField(
-            _passController,
-            "Şifre",
-            Icons.lock_outline,
-            obscure: true,
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                height: 56,
-                width: 120,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(11),
+        _textField(_userController, "Öğrenci No", Icons.person_outline),
+        const SizedBox(height: 16),
+        _textField(_passController, "Şifre", Icons.lock_outline, obscure: true),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Container(
+              height: 56,
+              width: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
                   child: viewModel.captchaImage != null
-                      ? Image.memory(viewModel.captchaImage!, fit: BoxFit.fill)
-                      : Container(color: Colors.grey[200]),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _textField(
-                  _captchaController,
-                  "Kod",
-                  Icons.vpn_key_outlined,
-                  suffix: IconButton(
-                    onPressed: () {
-                      _captchaController.clear();
-                      viewModel.loadCaptcha();
-                    },
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          if (viewModel.captchaCode.isNotEmpty && !isLoading)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: GestureDetector(
-                onTap: () => _captchaController.text = viewModel.captchaCode,
-                child: Text(
-                  "AI Tahmini: ${viewModel.captchaCode} (Dokun)",
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      ? Image.memory(
+                          viewModel.captchaImage!,
+                          width: 120,
+                          height: 56,
+                          fit: BoxFit.fill,
+                          key: ValueKey(viewModel.captchaImage.hashCode),
+                        )
+                      : const ShimmerBox(
+                          width: 120,
+                          height: 56,
+                          borderRadius: BorderRadius.zero,
+                        ),
                 ),
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _textField(
+                _captchaController,
+                "Kod",
+                Icons.vpn_key_outlined,
+                suffix: IconButton(
+                  onPressed: () {
+                    _captchaController.clear();
+                    viewModel.loadCaptcha();
+                  },
+                  icon: const Icon(Icons.refresh),
+                ),
+              ),
+            ),
+          ],
+        ),
 
-          Row(
+        GestureDetector(
+          onTap: () => setState(() => _rememberMe = !_rememberMe),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Checkbox(
                 value: _rememberMe,
@@ -163,52 +187,61 @@ class _LoginManualFormState extends State<LoginManualForm> {
               const Text("Beni Hatırla"),
             ],
           ),
+        ),
 
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: _rememberMe
-                ? Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _textField(
-                      _aliasController,
-                      "Hesap İsmi",
-                      Icons.label_outline,
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () => _handleLogin(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text(
-                "Giriş Yap",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
+        // AnimatedSize causes overflow, use AnimatedCrossFade instead
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 300),
+          crossFadeState: _rememberMe
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _textField(
+              _aliasController,
+              "Hesap İsmi",
+              Icons.label_outline,
             ),
           ),
+          secondChild: const SizedBox.shrink(),
+        ),
 
-          if (error.isNotEmpty && !isLoading)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Text(error, style: TextStyle(color: Colors.red[600])),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: () => _handleLogin(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
             ),
+            child: const Text(
+              "Giriş Yap",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+        ),
 
-          if (widget.showCancelButton)
-            TextButton.icon(
+        // Error is now shown via SnackBar in _handleLogin()
+        if (widget.showCancelButton)
+          Padding(
+            padding: const EdgeInsets.only(top: 24),
+            child: TextButton.icon(
               onPressed: widget.onCancel,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text("Kayıtlı Hesapla"),
+              icon: const Icon(Icons.arrow_back, size: 20),
+              label: const Text(
+                "Kayıtlı Hesapla",
+                style: TextStyle(fontSize: 16),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
             ),
-        ],
+          ),
       ],
     );
   }

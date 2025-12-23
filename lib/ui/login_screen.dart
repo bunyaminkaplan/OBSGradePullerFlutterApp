@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
@@ -9,7 +8,7 @@ import 'grades_screen.dart';
 
 // Widgets
 import 'widgets/login/easter_egg_logo.dart';
-import 'widgets/login/login_manual_form.dart';
+import 'widgets/login/animated_login_content.dart';
 import 'widgets/login/profile_selection_widget.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -23,9 +22,6 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _storage = StorageService();
 
-  // Animations (Only for Overlay coordination if needed, but Overlay manages itself mostly)
-  // Actually, TriggerButton needs to coordinate vibration with Overlay.
-  // We can lift the vibration controller here to pass to both.
   late AnimationController _vibrationController;
 
   // UI State
@@ -34,11 +30,23 @@ class _LoginScreenState extends State<LoginScreen>
   bool _showMenu = false;
   int _hoveredIndex = -1;
   bool _showHint = true;
+  double _buttonTopY = 0; // Y position of button for menu alignment
+
+  // Swipe gesture state
+  double _swipeDelta = 0.0; // Current swipe offset
+  bool _isIsolated = false; // Whether an item is currently isolated
+
+  // Key for getting button position
+  final GlobalKey _contentKey = GlobalKey();
+
+  // Edit State
+  Map<String, String>? _editingProfile;
 
   @override
   void initState() {
     super.initState();
     _loadProfiles();
+
     _vibrationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 80),
@@ -55,7 +63,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _loadProfiles() async {
     final list = await _storage.getProfiles();
-    // Legacy fix
     for (var p in list) {
       if (p['alias'] == 'Varsayılan' && p['username'] == '02230202057') {
         p['alias'] = 'Bunyamin';
@@ -68,25 +75,16 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() {
         _profiles = list;
         _showHint = showHint;
-        if (_profiles.isEmpty) {
-          _showManualLogin = true;
-        } else {
-          _showManualLogin = false;
-        }
-        // Always load captcha to initialize session/viewstate for one-tap login
-        // context.read<LoginViewModel>().loadCaptcha(); // Done in loadInitialSettings
+        _showManualLogin = _profiles.isEmpty;
       });
     }
   }
 
   Future<void> _loginWithProfile(int index) async {
     if (index < 0 || index >= _profiles.length) return;
-
     final p = _profiles[index];
     final viewModel = context.read<LoginViewModel>();
-
     final success = await viewModel.login(p['username']!, p['password']!);
-
     if (mounted) {
       if (success) {
         Navigator.pushReplacement(
@@ -94,15 +92,25 @@ class _LoginScreenState extends State<LoginScreen>
           MaterialPageRoute(builder: (_) => const GradesScreen()),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(viewModel.errorMessage)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.errorMessage),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
 
-  // Coordination methods
   void _onShowMenu() {
+    // Calculate button position for menu alignment
+    final RenderBox? box =
+        _contentKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null) {
+      final position = box.localToGlobal(Offset.zero);
+      _buttonTopY = position.dy;
+    }
+
     setState(() {
       _showMenu = true;
       _hoveredIndex = -1;
@@ -112,21 +120,17 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _onHoverIndexChanged(int index) {
-    // Validate index
     int validIndex = index;
     if (index < 0 || index >= _profiles.length) validIndex = -1;
-
     if (_hoveredIndex != validIndex) {
       setState(() => _hoveredIndex = validIndex);
     }
   }
 
   void _onSelectionConfirmed(int index) {
-    // -1 logic checked, -2 cancel
     _stopVibration();
     if (_showMenu) {
       if (index == -1) {
-        // Standard check from hover state
         if (_hoveredIndex >= 0 && _hoveredIndex < _profiles.length) {
           _storage.setHintShown();
           _loginWithProfile(_hoveredIndex);
@@ -137,8 +141,9 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _startVibration() {
-    if (!_vibrationController.isAnimating)
+    if (!_vibrationController.isAnimating) {
       _vibrationController.repeat(reverse: true);
+    }
   }
 
   void _stopVibration() {
@@ -148,73 +153,144 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Listen to ViewModel just for loading state if needed for global blocking
-    // or let widgets handle it.
-    // Manual Form handles its own listening. Trigger Button doesn't need it.
-
-    final showProfiles = _profiles.isNotEmpty && !_showManualLogin;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         mini: true,
         backgroundColor: isDark ? Colors.grey[800] : Colors.black,
+        onPressed: () => context.read<ThemeService>().toggleTheme(),
         child: Icon(
           isDark ? Icons.light_mode : Icons.dark_mode,
           color: Colors.white,
         ),
-        onPressed: () => context.read<ThemeService>().toggleTheme(),
       ),
       body: Stack(
         children: [
+          // Main Content - Bottom Aligned
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const EasterEggLogo(),
-                    const SizedBox(height: 24),
-                    Text(
-                      "OBS Ozal",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
+            child: CustomScrollView(
+              physics: const ClampingScrollPhysics(),
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // HEADER
+                          const EasterEggLogo(),
+                          const SizedBox(height: 24),
+                          Text(
+                            "OBS Ozal",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
+                            ),
+                          ),
+                          const SizedBox(height: 48),
+
+                          // ANIMATED CONTENT (Profile <-> Form)
+                          AnimatedLoginContent(
+                            key: _contentKey,
+                            showManualForm: _showManualLogin,
+                            profiles: _profiles,
+                            showHint: _showHint,
+                            editingUsername: _editingProfile?['username'],
+                            editingPassword: _editingProfile?['password'],
+                            onManualLoginRequested: () {
+                              setState(() {
+                                _showManualLogin = true;
+                                _editingProfile = null;
+                              });
+                            },
+                            onCancelRequested: () {
+                              setState(() {
+                                _showManualLogin = false;
+                                _editingProfile = null;
+                              });
+                            },
+                            onShowMenu: _onShowMenu,
+                            onHoverIndexChanged: _onHoverIndexChanged,
+                            onSelectionConfirmed: _onSelectionConfirmed,
+                            isIsolated: _isIsolated,
+                            onSwipeDelta: (delta) {
+                              setState(() => _swipeDelta = delta);
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 48),
-
-                    if (showProfiles)
-                      ProfileTriggerButton(
-                        onShowMenu: _onShowMenu,
-                        onManualLogin: () {
-                          setState(() => _showManualLogin = true);
-                          context.read<LoginViewModel>().loadCaptcha();
-                        },
-                        onHoverIndexChanged: _onHoverIndexChanged,
-                        onSelectionConfirmed: _onSelectionConfirmed,
-                        showHint: _showHint,
-                        profiles: _profiles,
-                      )
-                    else
-                      LoginManualForm(
-                        showCancelButton: _profiles.isNotEmpty,
-                        onCancel: () =>
-                            setState(() => _showManualLogin = false),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
 
+          // Profile Selection Overlay
           if (_showMenu)
             ProfileSelectionOverlay(
               profiles: _profiles,
               hoveredIndex: _hoveredIndex,
               vibrationController: _vibrationController,
+              buttonTopY: _buttonTopY,
+              swipeDelta: _swipeDelta,
+              onIsolationChanged: (isIsolated, index) {
+                setState(() {
+                  _isIsolated = isIsolated;
+                  _swipeDelta = 0.0;
+                });
+              },
+              onSwipeActionComplete: () {
+                setState(() {
+                  _showMenu = false;
+                  _swipeDelta = 0.0;
+                  _isIsolated = false;
+                });
+              },
+              onProfileSelected: (index) {
+                _loginWithProfile(index);
+                setState(() {
+                  _showMenu = false;
+                  _swipeDelta = 0.0;
+                });
+              },
+              onDelete: (index) async {
+                final p = _profiles[index];
+                await _storage.removeProfile(p['username']!);
+                await _loadProfiles();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Profil Silindi"),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              onEdit: (index) {
+                final p = _profiles[index];
+                setState(() {
+                  _showMenu = false;
+                  _showManualLogin = true;
+                  _editingProfile = p;
+                  _swipeDelta = 0.0;
+                  _isIsolated = false;
+                });
+                context.read<LoginViewModel>().loadCaptcha();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Düzenleme Modu"),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
             ),
         ],
       ),
