@@ -2,4 +2,4 @@
 /// GEÇICI: Migration tamamlanana kadar mevcut dosyalara referans
 library;
 
-export '../../../../services/captcha_service.dart';
+export 'tflite_captcha_solver.dart';

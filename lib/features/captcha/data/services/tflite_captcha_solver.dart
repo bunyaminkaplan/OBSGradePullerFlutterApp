@@ -9,17 +9,17 @@ import 'package:image/image.dart' as img;
 
 import '../../domain/services/captcha_solver.dart';
 import '../../../../core/constants.dart';
-import '../../../../core/utils/logger.dart';
+import '../../../../core/services/logger_service.dart';
 
 /// TensorFlow Lite tabanlı captcha çözücü
 /// OBS captcha görsellerini AI ile çözer
 class TFLiteCaptchaSolver implements CaptchaSolver {
   Interpreter? _interpreter;
   Interpreter? _interpreterOld;
-  final Logger _logger;
+  final LoggerService _logger;
 
-  TFLiteCaptchaSolver([Logger? logger])
-    : _logger = logger ?? const Logger(tag: 'Captcha');
+  TFLiteCaptchaSolver([LoggerService? logger])
+    : _logger = logger ?? LoggerService();
 
   @override
   Future<void> loadModel() async {

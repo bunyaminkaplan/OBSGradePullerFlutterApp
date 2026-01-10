@@ -31,10 +31,11 @@ import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/settings/data/repositories/settings_repository_impl.dart';
 import 'features/grades/data/repositories/grades_repository_impl.dart';
 
-// Services (geçici - sonraki aşamada taşınacak)
-import 'services/captcha_service.dart';
-import 'services/storage_service.dart';
-import 'services/theme_service.dart';
+// Services (migrated)
+import 'features/captcha/data/services/tflite_captcha_solver.dart';
+import 'features/captcha/domain/services/captcha_solver.dart';
+import 'infrastructure/storage/secure_storage_service.dart';
+import 'core/services/theme_service.dart';
 
 // Presentation (geçici - sonraki aşamada taşınacak)
 import 'viewmodels/login_view_model.dart';
@@ -62,10 +63,15 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        // Services
-        Provider<CaptchaService>(create: (_) => CaptchaService()),
-        ChangeNotifierProvider(create: (_) => ThemeService()),
+        // 0. Base Dependencies
         Provider<LoggerService>(create: (_) => LoggerService()),
+
+        // Services
+        Provider<CaptchaSolver>(
+          create: (context) =>
+              TFLiteCaptchaSolver(context.read<LoggerService>()),
+        ),
+        ChangeNotifierProvider(create: (_) => ThemeService()),
 
         // Data Sources
         Provider<AuthRemoteDataSource>(
@@ -98,7 +104,7 @@ void main() {
         ProxyProvider<AuthRepository, GetCaptchaUseCase>(
           update: (_, repo, __) => GetCaptchaUseCase(repo),
         ),
-        ProxyProvider2<AuthRepository, CaptchaService, AutoLoginUseCase>(
+        ProxyProvider2<AuthRepository, CaptchaSolver, AutoLoginUseCase>(
           update: (context, repo, captchaService, __) =>
               AutoLoginUseCase(repo, captchaService),
         ),
@@ -108,8 +114,11 @@ void main() {
         ),
 
         // Settings & Storage
-        Provider<StorageService>(create: (_) => StorageService()),
-        ProxyProvider<StorageService, SettingsRepository>(
+        Provider<SecureStorageService>(
+          create: (context) =>
+              SecureStorageService(null, context.read<LoggerService>()),
+        ),
+        ProxyProvider<SecureStorageService, SettingsRepository>(
           update: (_, storage, __) => SettingsRepositoryImpl(storage),
         ),
         ProxyProvider2<
@@ -136,7 +145,7 @@ void main() {
             getCaptchaUseCase: context.read<GetCaptchaUseCase>(),
             autoLoginUseCase: context.read<AutoLoginUseCase>(),
             toggleUniversityUseCase: context.read<ToggleUniversityUseCase>(),
-            captchaService: context.read<CaptchaService>(),
+            captchaService: context.read<CaptchaSolver>(),
             logger: context.read<LoggerService>(),
           ),
         ),

@@ -5,7 +5,7 @@ import '../features/auth/domain/usecases/logout_usecase.dart';
 import '../features/auth/domain/usecases/get_captcha_usecase.dart';
 import '../features/auth/domain/usecases/auto_login_usecase.dart';
 import '../features/settings/domain/toggle_university_usecase.dart';
-import '../services/captcha_service.dart';
+import '../features/captcha/domain/services/captcha_solver.dart';
 import '../core/services/logger_service.dart';
 
 enum LoginState { initial, loading, success, failure }
@@ -16,7 +16,7 @@ class LoginViewModel extends ChangeNotifier {
   final GetCaptchaUseCase _getCaptchaUseCase;
   final AutoLoginUseCase _autoLoginUseCase;
   final ToggleUniversityUseCase _toggleUniversityUseCase;
-  final CaptchaService _captchaService;
+  final CaptchaSolver _captchaService;
   final LoggerService _logger; // Logger eklendi
 
   LoginState _state = LoginState.initial;
@@ -30,7 +30,7 @@ class LoginViewModel extends ChangeNotifier {
     required GetCaptchaUseCase getCaptchaUseCase,
     required AutoLoginUseCase autoLoginUseCase,
     required ToggleUniversityUseCase toggleUniversityUseCase,
-    required CaptchaService captchaService,
+    required CaptchaSolver captchaService,
     LoggerService? logger, // Opsiyonel parametre
   }) : _loginUseCase = loginUseCase,
        _logoutUseCase = logoutUseCase,

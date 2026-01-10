@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/storage_service.dart';
-import '../services/theme_service.dart';
+import '../infrastructure/storage/secure_storage_service.dart';
+import '../core/services/theme_service.dart';
 
 import '../viewmodels/login_view_model.dart';
 import 'grades_screen.dart';
@@ -20,7 +20,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _storage = StorageService();
+  // Removed: final _storage = StorageService();
+  // The storage service will now be accessed via context.read<SecureStorageService>() in methods.
 
   late AnimationController _vibrationController;
 
@@ -62,13 +63,14 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _loadProfiles() async {
-    final list = await _storage.getProfiles();
+    final storage = context.read<SecureStorageService>(); // Access storage here
+    final list = await storage.getProfiles();
     for (var p in list) {
       if (p['alias'] == 'Varsayılan' && p['username'] == '02230202057') {
         p['alias'] = 'Bunyamin';
       }
     }
-    final showHint = await _storage.shouldShowHint();
+    final showHint = await storage.shouldShowHint();
 
     if (mounted) {
       await context.read<LoginViewModel>().loadInitialSettings();
@@ -132,7 +134,9 @@ class _LoginScreenState extends State<LoginScreen>
     if (_showMenu) {
       if (index == -1) {
         if (_hoveredIndex >= 0 && _hoveredIndex < _profiles.length) {
-          _storage.setHintShown();
+          context
+              .read<SecureStorageService>()
+              .setHintShown(); // Access storage here
           _loginWithProfile(_hoveredIndex);
         }
       }
@@ -161,7 +165,9 @@ class _LoginScreenState extends State<LoginScreen>
         backgroundColor: isDark ? Colors.grey[800] : Colors.black,
         onPressed: () => context.read<ThemeService>().toggleTheme(),
         child: Icon(
-          isDark ? Icons.light_mode : Icons.dark_mode,
+          context.watch<ThemeService>().mode == ThemeMode.dark
+              ? Icons.light_mode
+              : Icons.dark_mode,
           color: Colors.white,
         ),
       ),
@@ -263,7 +269,9 @@ class _LoginScreenState extends State<LoginScreen>
               },
               onDelete: (index) async {
                 final p = _profiles[index];
-                await _storage.removeProfile(p['username']!);
+                await context.read<SecureStorageService>().removeProfile(
+                  p['username']!,
+                );
                 await _loadProfiles();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

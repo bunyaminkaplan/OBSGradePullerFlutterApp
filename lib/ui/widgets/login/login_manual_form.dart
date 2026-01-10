@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../viewmodels/login_view_model.dart';
-import '../../../services/storage_service.dart';
+import '../../../infrastructure/storage/secure_storage_service.dart';
 import '../../grades_screen.dart'; // Navigation target
 import '../common/shimmer_box.dart';
 
@@ -28,11 +28,12 @@ class _LoginManualFormState extends State<LoginManualForm> {
   late final TextEditingController _passController;
   final _captchaController = TextEditingController();
   final _aliasController = TextEditingController();
-  final _storage = StorageService();
+  late final SecureStorageService storage;
 
   @override
   void initState() {
     super.initState();
+    storage = context.read<SecureStorageService>();
     _userController = TextEditingController(text: widget.initialUsername);
     _passController = TextEditingController(text: widget.initialPassword);
   }
@@ -89,7 +90,11 @@ class _LoginManualFormState extends State<LoginManualForm> {
       if (_rememberMe) {
         String alias = _aliasController.text.trim();
         if (alias.isEmpty) alias = username;
-        await _storage.saveProfile(username, password, alias);
+        await storage.saveProfile(
+          username: username,
+          password: password,
+          alias: alias,
+        );
       }
 
       // Navigate to GradesScreen

@@ -1,8 +1,8 @@
-import '../../../../services/storage_service.dart';
+import '../../../../infrastructure/storage/secure_storage_service.dart';
 import '../../domain/repositories/settings_repository.dart';
 
 class SettingsRepositoryImpl implements SettingsRepository {
-  final StorageService _storageService;
+  final SecureStorageService _storageService;
 
   // Hardcoded constants moved here or in AppConstants
   final String _ozalUrl = "https://obs.ozal.edu.tr";

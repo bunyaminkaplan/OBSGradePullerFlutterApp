@@ -5,17 +5,17 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../core/constants.dart';
-import '../../core/utils/logger.dart';
+import '../../core/services/logger_service.dart';
 
 /// Güvenli yerel depolama servisi
 /// Kullanıcı profilleri ve ayarlar için
 class SecureStorageService {
   final FlutterSecureStorage _storage;
-  final Logger _logger;
+  final LoggerService _logger;
 
-  SecureStorageService([FlutterSecureStorage? storage, Logger? logger])
+  SecureStorageService([FlutterSecureStorage? storage, LoggerService? logger])
     : _storage = storage ?? const FlutterSecureStorage(),
-      _logger = logger ?? const Logger(tag: 'Storage');
+      _logger = logger ?? LoggerService();
 
   /// Kayıtlı profilleri getir
   Future<List<Map<String, String>>> getProfiles() async {
