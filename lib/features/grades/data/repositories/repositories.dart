@@ -2,4 +2,4 @@
 /// GEÇICI: Migration tamamlanana kadar mevcut dosyalara referans
 library;
 
-export '../../../../data/repositories/grades_repository_impl.dart';
+export 'grades_repository_impl.dart';

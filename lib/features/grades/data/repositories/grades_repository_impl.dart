@@ -1,7 +1,7 @@
-import '../../features/grades/domain/repositories/grades_repository.dart';
-import '../../features/grades/domain/entities/grade.dart';
-import '../../features/grades/domain/entities/term.dart';
-import '../../features/grades/domain/entities/grades_result.dart';
+import '../../domain/repositories/grades_repository.dart';
+import '../../domain/entities/grade.dart';
+import '../../domain/entities/term.dart';
+import '../../domain/entities/grades_result.dart';
 import '../datasources/grades_remote_data_source.dart';
 
 class GradesRepositoryImpl implements GradesRepository {

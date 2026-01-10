@@ -1,8 +1,12 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:html/parser.dart' show parse;
-import '../../features/grades/domain/entities/grade.dart';
-import '../../core/services/logger_service.dart';
-import 'auth_remote_data_source.dart'; // For baseUrl sync
+import '../../../../core/services/logger_service.dart';
+import '../../../../core/errors/exception.dart';
+import '../../domain/entities/grade.dart';
+import '../../domain/entities/term.dart';
+import '../../domain/entities/grades_result.dart';
+import '../../../auth/data/datasources/auth_remote_data_source.dart';
 
 /// ---------------------------------------------------------------------------
 /// GRADES REMOTE DATA SOURCE

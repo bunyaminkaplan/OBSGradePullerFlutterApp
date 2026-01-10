@@ -24,12 +24,12 @@ import 'features/grades/domain/usecases/get_grade_details_usecase.dart';
 import 'features/settings/domain/repositories/settings_repository.dart';
 import 'features/settings/domain/toggle_university_usecase.dart';
 
-// Data Layer (geçici - sonraki aşamada taşınacak)
-import 'data/datasources/auth_remote_data_source.dart';
-import 'data/datasources/grades_remote_data_source.dart';
-import 'data/repositories/auth_repository_impl.dart';
-import 'data/repositories/settings_repository_impl.dart';
-import 'data/repositories/grades_repository_impl.dart';
+// Data Layer (features)
+import 'features/auth/data/datasources/auth_remote_data_source.dart';
+import 'features/grades/data/datasources/grades_remote_data_source.dart';
+import 'features/auth/data/repositories/auth_repository_impl.dart';
+import 'features/settings/data/repositories/settings_repository_impl.dart';
+import 'features/grades/data/repositories/grades_repository_impl.dart';
 
 // Services (geçici - sonraki aşamada taşınacak)
 import 'services/captcha_service.dart';

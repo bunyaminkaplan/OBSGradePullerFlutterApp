@@ -1,5 +1,5 @@
-import '../../services/storage_service.dart';
-import '../../features/settings/domain/repositories/settings_repository.dart';
+import '../../../../services/storage_service.dart';
+import '../../domain/repositories/settings_repository.dart';
 
 class SettingsRepositoryImpl implements SettingsRepository {
   final StorageService _storageService;

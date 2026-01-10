@@ -2,9 +2,9 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:html/parser.dart' show parse;
-import '../../core/constants.dart';
-import '../../core/exceptions/server_exception.dart';
-import '../../core/services/logger_service.dart';
+import '../../../../core/constants.dart';
+import '../../../../core/errors/exception.dart';
+import '../../../../core/services/logger_service.dart';
 
 /// ---------------------------------------------------------------------------
 /// AUTH REMOTE DATA SOURCE
@@ -29,7 +29,7 @@ class AuthRemoteDataSource {
   /// 1. Login Sayfasını ve Captcha'yı Getir
   Future<Uint8List?> fetchLoginPage({bool isRetry = false}) async {
     try {
-      String loginUrl = "$_baseUrl${AppConstants.loginEndpoint}";
+      String loginUrl = "$_baseUrl${ApiConstants.loginEndpoint}";
       _logger.info(
         "MİMARİ LOG: Login Sayfası İsteniyor (Retry: $isRetry) -> $loginUrl",
       );
@@ -110,7 +110,7 @@ class AuthRemoteDataSource {
       payload.remove('btnLogin');
 
       Response response = await _dio.post(
-        "$_baseUrl${AppConstants.loginEndpoint}",
+        "$_baseUrl${ApiConstants.loginEndpoint}",
         data: payload, // Pass Map directly for url-encoded
         options: Options(
           contentType: Headers.formUrlEncodedContentType,
