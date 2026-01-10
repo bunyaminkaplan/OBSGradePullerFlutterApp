@@ -11,6 +11,7 @@ class AnimatedLoginContent extends StatefulWidget {
   final bool showManualForm;
   final List<Map<String, String>> profiles;
   final bool showHint;
+  final bool isLoadingProfiles; // Profiller yüklenirken true
   final String? editingUsername;
   final String? editingPassword;
 
@@ -27,6 +28,7 @@ class AnimatedLoginContent extends StatefulWidget {
     required this.showManualForm,
     required this.profiles,
     required this.showHint,
+    this.isLoadingProfiles = true,
     this.editingUsername,
     this.editingPassword,
     required this.onManualLoginRequested,
@@ -124,7 +126,21 @@ class _AnimatedLoginContentState extends State<AnimatedLoginContent>
     final hasProfiles = widget.profiles.isNotEmpty;
 
     // On first build, show content immediately without animation
+    // Profiller yüklenirken loading göster (flash sorunu çözümü)
     if (_isFirstBuild && !widget.showManualForm) {
+      if (widget.isLoadingProfiles) {
+        // Profiller yüklenene kadar loading indicator
+        return const SizedBox(
+          height: 56,
+          child: Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        );
+      }
       return hasProfiles
           ? ProfileTriggerButton(
               onShowMenu: widget.onShowMenu,

@@ -2,6 +2,8 @@ import 'dart:ui'; // For clamp
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/theme_service.dart';
+import '../../../../infrastructure/di/injection_container.dart' as di;
+import '../../../settings/domain/repositories/settings_repository.dart';
 
 import '../viewmodels/login_view_model.dart';
 import '../../../grades/presentation/pages/grades_page.dart';
@@ -12,7 +14,10 @@ import '../widgets/animated_login_content.dart';
 import '../widgets/profile_selection_widget.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  /// [skipQuickLogin] true ise otomatik giriş atlanır (logout sonrası için)
+  final bool skipQuickLogin;
+
+  const LoginPage({super.key, this.skipQuickLogin = false});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -38,8 +43,14 @@ class _LoginPageState extends State<LoginPage>
   void initState() {
     super.initState();
     // Start Data Loading
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LoginViewModel>().loadInitialData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final viewModel = context.read<LoginViewModel>();
+      await viewModel.loadInitialData();
+
+      // Hızlı giriş kontrolü (logout ile gelindiyse atla)
+      if (mounted && !widget.skipQuickLogin) {
+        await _checkQuickLogin();
+      }
     });
 
     _vibrationController = AnimationController(
@@ -48,6 +59,38 @@ class _LoginPageState extends State<LoginPage>
       lowerBound: -1.0,
       upperBound: 1.0,
     );
+  }
+
+  /// Hızlı giriş kontrolü - ayarlanmış profil varsa otomatik giriş yap
+  Future<void> _checkQuickLogin() async {
+    final settingsRepo = di.sl<SettingsRepository>();
+    final quickLoginUsername = await settingsRepo.getQuickLoginProfile();
+
+    if (quickLoginUsername == null || !mounted) return;
+
+    final viewModel = context.read<LoginViewModel>();
+    final profiles = viewModel.profiles;
+
+    // Seçili profili bul
+    final profile = profiles.firstWhere(
+      (p) => p['username'] == quickLoginUsername,
+      orElse: () => {},
+    );
+
+    if (profile.isEmpty) return; // Profil bulunamadı
+
+    // Otomatik giriş yap
+    final success = await viewModel.login(
+      profile['username']!,
+      profile['password']!,
+    );
+
+    if (success && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const GradesPage()),
+      );
+    }
   }
 
   @override
@@ -140,13 +183,12 @@ class _LoginPageState extends State<LoginPage>
         final profiles = viewModel.profiles;
         final showHint = viewModel.showHint;
 
-        // Auto-switch to manual if no profiles
-        if (profiles.isEmpty && !_showManualLogin) {
-          // We can't setState during build, but AnimatedLoginContent handles initial state via showManualForm param
-          // If profiles is empty, showManualForm should be true based on logic
-        }
+        // Auto-switch to manual if no profiles (but wait for loading to complete)
+        // isLoadingProfiles true iken profiles.isEmpty olsa bile manual form gösterme
+        final isLoading = viewModel.isLoadingProfiles;
 
-        final effectiveShowManual = _showManualLogin || profiles.isEmpty;
+        final effectiveShowManual =
+            _showManualLogin || (!isLoading && profiles.isEmpty);
 
         return Scaffold(
           floatingActionButton: FloatingActionButton(
@@ -195,6 +237,7 @@ class _LoginPageState extends State<LoginPage>
                                 showManualForm: effectiveShowManual,
                                 profiles: profiles,
                                 showHint: showHint,
+                                isLoadingProfiles: isLoading,
                                 editingUsername: _editingProfile?['username'],
                                 editingPassword: _editingProfile?['password'],
                                 onManualLoginRequested: () {

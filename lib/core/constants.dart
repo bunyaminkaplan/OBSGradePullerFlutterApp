@@ -13,8 +13,7 @@ abstract final class ApiConstants {
 /// Üniversite URL sabitleri
 abstract final class UniversityConstants {
   static const String ozalUrl = 'https://obs.ozal.edu.tr';
-  static const String malatya2Url =
-      'https://obs.inonu.edu.tr'; // Örnek alternatif
+  static const String inonuUrl = 'https://obs.inonu.edu.tr'; // Örnek alternatif
 
   static const Map<String, String> universities = {
     'ozal': ozalUrl,
@@ -42,6 +41,7 @@ abstract final class StorageKeys {
   static const String profiles = 'obs_profiles';
   static const String universityUrl = 'uni_base_url_v1';
   static const String hintShown = 'hint_shown_v1';
+  static const String quickLoginProfile = 'quick_login_profile_v1';
 
   // Legacy keys (migrasyon için)
   static const String legacyUsername = 'obs_username';
@@ -61,13 +61,4 @@ abstract final class HttpConstants {
 abstract final class RetryConstants {
   static const int maxLoginAttempts = 5;
   static const Duration retryDelay = Duration(milliseconds: 1000);
-}
-
-// Geriye dönük uyumluluk için eski isim (deprecate edilecek)
-@Deprecated('Use ApiConstants and CaptchaConstants instead')
-typedef AppConstants = _LegacyAppConstants;
-
-class _LegacyAppConstants {
-  static const String loginEndpoint = ApiConstants.loginEndpoint;
-  static const List<List<int>> digitSlices = CaptchaConstants.digitSlices;
 }

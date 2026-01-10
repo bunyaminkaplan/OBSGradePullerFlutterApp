@@ -29,6 +29,8 @@ class LoginViewModel extends ChangeNotifier {
   // Profile Data
   List<Map<String, String>> _profiles = [];
   bool _showHint = true;
+  bool _isLoadingProfiles =
+      true; // Başlangıçta true - profiller yüklenene kadar
 
   LoginViewModel({
     required LoginUseCase loginUseCase,
@@ -54,6 +56,7 @@ class LoginViewModel extends ChangeNotifier {
   String get captchaCode => _captchaCode;
   List<Map<String, String>> get profiles => _profiles;
   bool get showHint => _showHint;
+  bool get isLoadingProfiles => _isLoadingProfiles;
 
   Future<void> loadInitialData() async {
     await _toggleUniversityUseCase.loadSavedUrl();
@@ -62,6 +65,9 @@ class LoginViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadProfiles() async {
+    _isLoadingProfiles = true;
+    notifyListeners();
+
     final list = await _storageService.getProfiles();
     for (var p in list) {
       if (p['alias'] == 'Varsayılan' && p['username'] == '02230202057') {
@@ -70,6 +76,7 @@ class LoginViewModel extends ChangeNotifier {
     }
     _profiles = list;
     _showHint = await _storageService.shouldShowHint();
+    _isLoadingProfiles = false;
     notifyListeners();
   }
 

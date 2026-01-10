@@ -30,6 +30,9 @@ import '../../infrastructure/storage/secure_storage_service.dart';
 import '../../features/settings/data/repositories/settings_repository_impl.dart';
 import '../../features/settings/domain/repositories/settings_repository.dart';
 import '../../features/settings/domain/toggle_university_usecase.dart';
+import '../../features/settings/domain/usecases/get_quick_login_profile_usecase.dart';
+import '../../features/settings/domain/usecases/set_quick_login_profile_usecase.dart';
+import '../../features/settings/presentation/viewmodels/settings_view_model.dart';
 import '../../features/captcha/data/services/tflite_captcha_solver.dart';
 import '../../features/captcha/domain/services/captcha_solver.dart';
 
@@ -80,8 +83,19 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GradesRemoteDataSource(sl(), sl(), sl()));
 
   //! Features - Settings
+  // ViewModel
+  sl.registerFactory(
+    () => SettingsViewModel(
+      getQuickLoginProfile: sl(),
+      setQuickLoginProfile: sl(),
+      storageService: sl(),
+    ),
+  );
+
   // Use Cases
   sl.registerLazySingleton(() => ToggleUniversityUseCase(sl(), sl()));
+  sl.registerLazySingleton(() => GetQuickLoginProfileUseCase(sl()));
+  sl.registerLazySingleton(() => SetQuickLoginProfileUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<SettingsRepository>(

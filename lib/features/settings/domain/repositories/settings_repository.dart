@@ -12,4 +12,10 @@ abstract interface class SettingsRepository {
 
   /// Üniversite URL'ini kaydet
   Future<void> saveUniversityUrl(String url);
+
+  /// Hızlı giriş için seçili profil username'ini getir
+  Future<String?> getQuickLoginProfile();
+
+  /// Hızlı giriş için profil seç (null = devre dışı bırak)
+  Future<void> setQuickLoginProfile(String? username);
 }

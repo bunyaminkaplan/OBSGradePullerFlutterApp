@@ -110,6 +110,22 @@ class SecureStorageService {
     await _storage.write(key: StorageKeys.hintShown, value: 'true');
   }
 
+  /// Hızlı giriş profili getir
+  Future<String?> getQuickLoginProfile() async {
+    return _storage.read(key: StorageKeys.quickLoginProfile);
+  }
+
+  /// Hızlı giriş profili kaydet
+  Future<void> setQuickLoginProfile(String? username) async {
+    if (username == null || username.isEmpty) {
+      await _storage.delete(key: StorageKeys.quickLoginProfile);
+      _logger.info('Hızlı giriş devre dışı bırakıldı');
+    } else {
+      await _storage.write(key: StorageKeys.quickLoginProfile, value: username);
+      _logger.info('Hızlı giriş profili ayarlandı: $username');
+    }
+  }
+
   /// Tüm verileri temizle
   Future<void> clearAll() async {
     await _storage.deleteAll();

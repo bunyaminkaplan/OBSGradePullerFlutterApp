@@ -9,6 +9,7 @@ import 'infrastructure/storage/secure_storage_service.dart';
 // Presentation
 import 'features/auth/presentation/viewmodels/login_view_model.dart';
 import 'features/grades/presentation/viewmodels/grades_view_model.dart';
+import 'features/settings/presentation/viewmodels/settings_view_model.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 
 // Infrastructure
@@ -27,6 +28,7 @@ void main() async {
         // Note: Dependencies are injected via GetIt (di.sl())
         ChangeNotifierProvider(create: (_) => di.sl<LoginViewModel>()),
         ChangeNotifierProvider(create: (_) => di.sl<GradesViewModel>()),
+        ChangeNotifierProvider(create: (_) => di.sl<SettingsViewModel>()),
 
         // UI Services (Theme)
         ChangeNotifierProvider(create: (_) => di.sl<ThemeService>()),

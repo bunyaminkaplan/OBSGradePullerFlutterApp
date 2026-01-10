@@ -37,4 +37,14 @@ class SettingsRepositoryImpl implements SettingsRepository {
   Future<void> saveUniversityUrl(String url) async {
     await _storageService.saveUniversityUrl(url);
   }
+
+  @override
+  Future<String?> getQuickLoginProfile() async {
+    return await _storageService.getQuickLoginProfile();
+  }
+
+  @override
+  Future<void> setQuickLoginProfile(String? username) async {
+    await _storageService.setQuickLoginProfile(username);
+  }
 }

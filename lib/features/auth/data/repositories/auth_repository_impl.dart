@@ -1,10 +1,7 @@
 import 'dart:typed_data';
-import '../../../../core/utils/result.dart';
-import '../../../../core/errors/failure.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/user.dart';
 import '../datasources/auth_remote_data_source.dart';
-import 'package:mobile_app/core/services/logger_service.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;

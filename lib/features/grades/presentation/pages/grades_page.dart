@@ -6,6 +6,7 @@ import '../viewmodels/grades_view_model.dart';
 import '../widgets/grade_card.dart';
 import '../widgets/term_selector.dart';
 import '../widgets/grades_shimmer_list.dart';
+import '../../../settings/presentation/pages/settings_page.dart';
 
 class GradesPage extends StatefulWidget {
   const GradesPage({super.key});
@@ -29,7 +30,10 @@ class _GradesPageState extends State<GradesPage> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+        MaterialPageRoute(
+          // skipQuickLogin: true -> logout sonrası otomatik giriş döngüsünü engelle
+          builder: (context) => const LoginPage(skipQuickLogin: true),
+        ),
         (route) => false,
       );
     }
@@ -65,10 +69,20 @@ class _GradesPageState extends State<GradesPage> {
               ),
             ),
             actions: [
+              // Settings
+              IconButton(
+                icon: const Icon(Icons.build, color: Colors.white),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()),
+                ),
+              ),
+              // Refresh
               IconButton(
                 onPressed: () => viewModel.loadGrades(termId: currentTermId),
                 icon: const Icon(Icons.refresh, color: Colors.blueAccent),
               ),
+              // Logout
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.redAccent),
                 onPressed: _performLogout,
