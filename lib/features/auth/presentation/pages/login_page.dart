@@ -12,6 +12,7 @@ import '../../../grades/presentation/pages/grades_page.dart';
 import '../widgets/easter_egg_logo.dart';
 import '../widgets/animated_login_content.dart';
 import '../widgets/profile_selection_widget.dart';
+import '../widgets/login_loading_overlay.dart';
 
 class LoginPage extends StatefulWidget {
   /// [skipQuickLogin] true ise otomatik giriş atlanır (logout sonrası için)
@@ -48,8 +49,14 @@ class _LoginPageState extends State<LoginPage>
       await viewModel.loadInitialData();
 
       // Hızlı giriş kontrolü (logout ile gelindiyse atla)
+      bool quickLoginSuccess = false;
       if (mounted && !widget.skipQuickLogin) {
-        await _checkQuickLogin();
+        quickLoginSuccess = await _checkQuickLogin();
+      }
+
+      // Quick login yoksa veya başarısızsa captcha yükle
+      if (!quickLoginSuccess && mounted) {
+        await viewModel.ensureCaptchaLoaded();
       }
     });
 
@@ -62,11 +69,12 @@ class _LoginPageState extends State<LoginPage>
   }
 
   /// Hızlı giriş kontrolü - ayarlanmış profil varsa otomatik giriş yap
-  Future<void> _checkQuickLogin() async {
+  /// [return] true: başarılı giriş, false: quick login yok veya başarısız
+  Future<bool> _checkQuickLogin() async {
     final settingsRepo = di.sl<SettingsRepository>();
     final quickLoginUsername = await settingsRepo.getQuickLoginProfile();
 
-    if (quickLoginUsername == null || !mounted) return;
+    if (quickLoginUsername == null || !mounted) return false;
 
     final viewModel = context.read<LoginViewModel>();
     final profiles = viewModel.profiles;
@@ -77,12 +85,13 @@ class _LoginPageState extends State<LoginPage>
       orElse: () => {},
     );
 
-    if (profile.isEmpty) return; // Profil bulunamadı
+    if (profile.isEmpty) return false; // Profil bulunamadı
 
     // Otomatik giriş yap
     final success = await viewModel.login(
       profile['username']!,
       profile['password']!,
+      alias: profile['alias'],
     );
 
     if (success && mounted) {
@@ -90,7 +99,9 @@ class _LoginPageState extends State<LoginPage>
         context,
         MaterialPageRoute(builder: (_) => const GradesPage()),
       );
+      return true;
     }
+    return false;
   }
 
   @override
@@ -106,7 +117,11 @@ class _LoginPageState extends State<LoginPage>
     if (index < 0 || index >= viewModel.profiles.length) return;
 
     final p = viewModel.profiles[index];
-    final success = await viewModel.login(p['username']!, p['password']!);
+    final success = await viewModel.login(
+      p['username']!,
+      p['password']!,
+      alias: p['alias'],
+    );
 
     if (mounted) {
       if (success) {
@@ -327,6 +342,13 @@ class _LoginPageState extends State<LoginPage>
                     );
                   },
                 ),
+
+              // Loading Overlay (en üstte)
+              LoginLoadingOverlay(
+                isVisible: viewModel.state == LoginState.loggingIn,
+                username: viewModel.loggingInAsUsername,
+                alias: viewModel.loggingInAsAlias,
+              ),
             ],
           ),
         );

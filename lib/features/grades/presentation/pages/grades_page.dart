@@ -71,7 +71,13 @@ class _GradesPageState extends State<GradesPage> {
             actions: [
               // Settings
               IconButton(
-                icon: const Icon(Icons.build, color: Colors.white),
+                icon: Icon(
+                  Icons.build,
+                  size: 20,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[300]
+                      : Colors.grey[700],
+                ),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const SettingsPage()),

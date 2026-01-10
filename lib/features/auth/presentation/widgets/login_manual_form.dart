@@ -118,7 +118,9 @@ class _LoginManualFormState extends State<LoginManualForm> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<LoginViewModel>();
-    final isLoading = viewModel.state == LoginState.loading;
+    final isLoading =
+        viewModel.state == LoginState.loadingCaptcha ||
+        viewModel.state == LoginState.loggingIn;
 
     // Auto-fill Captcha Logic
     if (viewModel.captchaCode.isNotEmpty &&

@@ -42,6 +42,7 @@ abstract final class StorageKeys {
   static const String universityUrl = 'uni_base_url_v1';
   static const String hintShown = 'hint_shown_v1';
   static const String quickLoginProfile = 'quick_login_profile_v1';
+  static const String themeMode = 'theme_mode_v1';
 
   // Legacy keys (migrasyon için)
   static const String legacyUsername = 'obs_username';

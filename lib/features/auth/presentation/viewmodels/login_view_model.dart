@@ -9,7 +9,13 @@ import '../../../captcha/domain/services/captcha_solver.dart';
 import '../../../../core/services/logger_service.dart';
 import '../../../../infrastructure/storage/secure_storage_service.dart';
 
-enum LoginState { initial, loading, success, failure }
+enum LoginState {
+  initial,
+  loadingCaptcha, // Captcha yüklenirken (overlay gösterilmez)
+  loggingIn, // Giriş yapılırken (overlay gösterilir)
+  success,
+  failure,
+}
 
 class LoginViewModel extends ChangeNotifier {
   final LoginUseCase _loginUseCase;
@@ -31,6 +37,10 @@ class LoginViewModel extends ChangeNotifier {
   bool _showHint = true;
   bool _isLoadingProfiles =
       true; // Başlangıçta true - profiller yüklenene kadar
+
+  // Giriş yapılan kullanıcı bilgisi (loading overlay için)
+  String? _loggingInAsUsername;
+  String? _loggingInAsAlias;
 
   LoginViewModel({
     required LoginUseCase loginUseCase,
@@ -57,11 +67,13 @@ class LoginViewModel extends ChangeNotifier {
   List<Map<String, String>> get profiles => _profiles;
   bool get showHint => _showHint;
   bool get isLoadingProfiles => _isLoadingProfiles;
+  String? get loggingInAsUsername => _loggingInAsUsername;
+  String? get loggingInAsAlias => _loggingInAsAlias;
 
   Future<void> loadInitialData() async {
     await _toggleUniversityUseCase.loadSavedUrl();
-    await loadCaptcha();
-    await _loadProfiles();
+    await _loadProfiles(); // Profilleri ÖNCE yükle (hızlı açılış için)
+    // Captcha lazy yüklenecek - ensureCaptchaLoaded() ile
   }
 
   Future<void> _loadProfiles() async {
@@ -98,7 +110,7 @@ class LoginViewModel extends ChangeNotifier {
   }
 
   Future<void> loadCaptcha() async {
-    _state = LoginState.loading;
+    _state = LoginState.loadingCaptcha;
     notifyListeners();
 
     try {
@@ -126,12 +138,23 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Captcha'yı lazy olarak yükle (sadece manuel giriş gerektiğinde)
+  Future<void> ensureCaptchaLoaded() async {
+    if (_captchaImage == null && _state != LoginState.loadingCaptcha) {
+      await loadCaptcha();
+    }
+  }
+
   Future<bool> login(
     String studentNumber,
     String password, {
     String? manualCaptcha,
+    String? alias,
   }) async {
-    _state = LoginState.loading;
+    // Loading overlay için kullanıcı bilgisini set et
+    _loggingInAsUsername = studentNumber;
+    _loggingInAsAlias = alias;
+    _state = LoginState.loggingIn;
     _errorMessage = '';
     notifyListeners();
 
@@ -163,6 +186,9 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
     if (_state == LoginState.failure) {
       loadCaptcha();
+      // Hata durumunda kullanıcı bilgisini temizle
+      _loggingInAsUsername = null;
+      _loggingInAsAlias = null;
     }
     return false;
   }

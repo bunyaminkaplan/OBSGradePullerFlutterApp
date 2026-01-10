@@ -21,6 +21,9 @@ void main() async {
   // Initialize Dependency Injection
   await di.init();
 
+  // Kaydedilmiş tema modunu yükle
+  await di.sl<ThemeService>().loadSavedTheme();
+
   runApp(
     MultiProvider(
       providers: [

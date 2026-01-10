@@ -146,7 +146,7 @@ class _AnimatedLoginContentState extends State<AnimatedLoginContent>
               onShowMenu: widget.onShowMenu,
               onManualLogin: () {
                 widget.onManualLoginRequested();
-                context.read<LoginViewModel>().loadCaptcha();
+                context.read<LoginViewModel>().ensureCaptchaLoaded();
               },
               onHoverIndexChanged: widget.onHoverIndexChanged,
               onSelectionConfirmed: widget.onSelectionConfirmed,
@@ -193,7 +193,7 @@ class _AnimatedLoginContentState extends State<AnimatedLoginContent>
                         onShowMenu: widget.onShowMenu,
                         onManualLogin: () {
                           widget.onManualLoginRequested();
-                          context.read<LoginViewModel>().loadCaptcha();
+                          context.read<LoginViewModel>().ensureCaptchaLoaded();
                         },
                         onHoverIndexChanged: widget.onHoverIndexChanged,
                         onSelectionConfirmed: widget.onSelectionConfirmed,
