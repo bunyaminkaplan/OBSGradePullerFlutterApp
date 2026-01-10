@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../viewmodels/login_view_model.dart';
-import '../../../infrastructure/storage/secure_storage_service.dart';
-import '../../grades_screen.dart'; // Navigation target
-import '../common/shimmer_box.dart';
+import '../viewmodels/login_view_model.dart';
+import '../../../../infrastructure/storage/secure_storage_service.dart';
+import '../../../../core/presentation/widgets/shimmer_box.dart';
+import '../../../grades/presentation/pages/grades_page.dart';
 
 class LoginManualForm extends StatefulWidget {
   final VoidCallback onCancel; // To go back to profiles
@@ -100,7 +100,7 @@ class _LoginManualFormState extends State<LoginManualForm> {
       // Navigate to GradesScreen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const GradesScreen()),
+        MaterialPageRoute(builder: (_) => const GradesPage()),
       );
     } else if (!success && mounted) {
       _captchaController.clear();

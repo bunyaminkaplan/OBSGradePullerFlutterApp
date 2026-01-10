@@ -1,233 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
-import '../features/grades/domain/entities/grade.dart';
-import '../viewmodels/grades_view_model.dart';
-import '../viewmodels/login_view_model.dart';
-import 'login_screen.dart';
-
-class GradesScreen extends StatefulWidget {
-  const GradesScreen({super.key});
-
-  @override
-  State<GradesScreen> createState() => _GradesScreenState();
-}
-
-class _GradesScreenState extends State<GradesScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Initial fetch
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GradesViewModel>().loadGrades();
-    });
-  }
-
-  Future<void> _performLogout() async {
-    await context.read<LoginViewModel>().logout();
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<GradesViewModel>(
-      builder: (context, viewModel, child) {
-        final grades = viewModel.grades;
-        final terms = viewModel.terms;
-        final currentTermId = viewModel.currentTermId;
-        final isLoading = viewModel.state == GradesState.loading;
-
-        // Auto-expand stats for items with status
-        // WE CANNOT DO THIS IN BUILD directly.
-        // It causes repeated calls. ViewModel should handle it or we trigger it once.
-        // Better: ViewModel.loadGrades() should trigger auto-expand internally or use a separate loop?
-        // Let's iterate here carefully or use a helper.
-        // Actually, the original code looked for `status.isNotEmpty` and fired requests.
-        // Ideally, `GetGradesUseCase` returns the list, and then we might want to fetch stats in background.
-        // Let's add that logic to ViewModel later or here via PostFrameCallback safely?
-        // Or simple: `GradesViewModel.loadGrades()` could chain `_fetchStats()`.
-        // For now, let's keep basic display. "Expanding stats" is a TODO item in ViewModel usage?
-        // User wants previous behavior: "Fetch Stats Incrementally".
-        // I should call `viewModel.expandGradeDetails(index)` for all items?
-        // Warning: heavy network.
-        // Let's do it in `initState` or `loadGrades` completion.
-        // Correct place: `GradesViewModel` should have `fetchAllStats()` or do it in `loadGrades`.
-        // I will trigger it here:
-        if (viewModel.state == GradesState.success) {
-          // We can't loop calling setState triggers here.
-          // Ideally ViewModel handles this "Smart Fetch".
-          // I'll leave it manual for now (user tap) OR implement `expandAll` in VM.
-          // Given previous code did it automatically, I should probably add `fetchAllDetails` to VM.
-        }
-
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Theme.of(context).cardColor,
-            title: Text(
-              "Notlar",
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: () => viewModel.loadGrades(termId: currentTermId),
-                icon: const Icon(Icons.refresh, color: Colors.blueAccent),
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout, color: Colors.redAccent),
-                onPressed: _performLogout,
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              // Term Selector
-              if (terms.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: currentTermId.isEmpty ? null : currentTermId,
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.blueAccent,
-                      ),
-                      isExpanded: true,
-                      dropdownColor: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(20),
-                      elevation: 4,
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                      items: terms.map((t) {
-                        return DropdownMenuItem<String>(
-                          value: t.id,
-                          child: Text(t.name, overflow: TextOverflow.ellipsis),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null && val != currentTermId) {
-                          viewModel.loadGrades(termId: val);
-                        }
-                      },
-                    ),
-                  ),
-                ),
-
-              // Content
-              Expanded(
-                child: isLoading
-                    ? _buildShimmerList(context)
-                    : grades.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.class_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              "Bu dönem için not bulunamadı.",
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        itemCount: grades.length,
-                        itemBuilder: (context, index) {
-                          // Trigger detail fetch if status indicates it's needed
-                          // and not already fetched (e.g. check if Avg is empty/fake)
-                          // This is a "Lazy Load" pattern for ListView
-                          final g = grades[index];
-                          if (g.status.isNotEmpty &&
-                              !g.status.startsWith("FETCHED")) {
-                            // Schedule fetch
-                            // We need a flag or check.
-                            // Entity is immutable.
-                            // Use a microtask/postframe?
-                            // Better: Trigger fetchAll in VM after success.
-                            // For now, simple Card.
-                          }
-
-                          // Manually trigger fetch for this item?
-                          // Or let user tap? "Incremental fetch" was automatic.
-                          // I'll add logic to VM to fetch all after load.
-
-                          return GradeCard(grade: grades[index]);
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildShimmerList(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: 6,
-      itemBuilder: (context, index) {
-        return Shimmer.fromColors(
-          baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-          highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
-          child: Container(
-            height: 154,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
+import '../../domain/entities/grade.dart';
 
 class GradeCard extends StatelessWidget {
-  final Grade grade; // Updated to Entity
+  final Grade grade;
   const GradeCard({super.key, required this.grade});
 
   Color _getStatusColor(String letter) {
@@ -256,13 +32,13 @@ class GradeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.15)
-              : Colors.grey.withOpacity(0.2),
+              ? Colors.white.withValues(alpha: 0.15)
+              : Colors.grey.withValues(alpha: 0.2),
           width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             offset: const Offset(0, 4),
             blurRadius: 12,
           ),
@@ -321,7 +97,7 @@ class GradeCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -400,7 +176,7 @@ class GradeCard extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 16,
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                   ),
                   const SizedBox(width: 16),
                   Text(

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../features/grades/domain/usecases/get_grades_usecase.dart';
-import '../features/grades/domain/usecases/get_grade_details_usecase.dart';
-import '../features/grades/domain/entities/grade.dart';
-import '../features/grades/domain/entities/term.dart';
-import 'package:flutter/foundation.dart'; // For debugPrint
+import '../../domain/usecases/get_grades_usecase.dart';
+import '../../domain/usecases/get_grade_details_usecase.dart';
+import '../../domain/entities/grade.dart';
+import '../../domain/entities/term.dart';
 
 enum GradesState { initial, loading, success, failure }
 

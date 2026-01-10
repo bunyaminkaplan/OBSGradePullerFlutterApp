@@ -1,12 +1,13 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../features/auth/domain/usecases/login_usecase.dart';
-import '../features/auth/domain/usecases/logout_usecase.dart';
-import '../features/auth/domain/usecases/get_captcha_usecase.dart';
-import '../features/auth/domain/usecases/auto_login_usecase.dart';
-import '../features/settings/domain/toggle_university_usecase.dart';
-import '../features/captcha/domain/services/captcha_solver.dart';
-import '../core/services/logger_service.dart';
+import '../../domain/usecases/login_usecase.dart';
+import '../../domain/usecases/logout_usecase.dart';
+import '../../domain/usecases/get_captcha_usecase.dart';
+import '../../domain/usecases/auto_login_usecase.dart';
+import '../../../settings/domain/toggle_university_usecase.dart';
+import '../../../captcha/domain/services/captcha_solver.dart';
+import '../../../../core/services/logger_service.dart';
+import '../../../../infrastructure/storage/secure_storage_service.dart';
 
 enum LoginState { initial, loading, success, failure }
 
@@ -17,12 +18,17 @@ class LoginViewModel extends ChangeNotifier {
   final AutoLoginUseCase _autoLoginUseCase;
   final ToggleUniversityUseCase _toggleUniversityUseCase;
   final CaptchaSolver _captchaService;
-  final LoggerService _logger; // Logger eklendi
+  final LoggerService _logger;
+  final SecureStorageService _storageService;
 
   LoginState _state = LoginState.initial;
   String _errorMessage = '';
   Uint8List? _captchaImage;
   String _captchaCode = '';
+
+  // Profile Data
+  List<Map<String, String>> _profiles = [];
+  bool _showHint = true;
 
   LoginViewModel({
     required LoginUseCase loginUseCase,
@@ -31,37 +37,64 @@ class LoginViewModel extends ChangeNotifier {
     required AutoLoginUseCase autoLoginUseCase,
     required ToggleUniversityUseCase toggleUniversityUseCase,
     required CaptchaSolver captchaService,
-    LoggerService? logger, // Opsiyonel parametre
+    required SecureStorageService storageService,
+    LoggerService? logger,
   }) : _loginUseCase = loginUseCase,
        _logoutUseCase = logoutUseCase,
        _getCaptchaUseCase = getCaptchaUseCase,
        _autoLoginUseCase = autoLoginUseCase,
        _toggleUniversityUseCase = toggleUniversityUseCase,
        _captchaService = captchaService,
+       _storageService = storageService,
        _logger = logger ?? LoggerService();
-
-  Future<void> loadInitialSettings() async {
-    await _toggleUniversityUseCase.loadSavedUrl();
-    await loadCaptcha(); // Load captcha after setting URL
-  }
-
-  Future<String> toggleUniversity() async {
-    final name = await _toggleUniversityUseCase();
-    await loadCaptcha(); // Reload captcha from new university
-    return name;
-  }
 
   LoginState get state => _state;
   String get errorMessage => _errorMessage;
   Uint8List? get captchaImage => _captchaImage;
   String get captchaCode => _captchaCode;
+  List<Map<String, String>> get profiles => _profiles;
+  bool get showHint => _showHint;
+
+  Future<void> loadInitialData() async {
+    await _toggleUniversityUseCase.loadSavedUrl();
+    await loadCaptcha();
+    await _loadProfiles();
+  }
+
+  Future<void> _loadProfiles() async {
+    final list = await _storageService.getProfiles();
+    for (var p in list) {
+      if (p['alias'] == 'Varsayılan' && p['username'] == '02230202057') {
+        p['alias'] = 'Bunyamin';
+      }
+    }
+    _profiles = list;
+    _showHint = await _storageService.shouldShowHint();
+    notifyListeners();
+  }
+
+  Future<void> removeProfile(String username) async {
+    await _storageService.removeProfile(username);
+    await _loadProfiles();
+  }
+
+  Future<void> setHintShown() async {
+    await _storageService.setHintShown();
+    _showHint = false;
+    notifyListeners();
+  }
+
+  Future<String> toggleUniversity() async {
+    final name = await _toggleUniversityUseCase();
+    await loadCaptcha();
+    return name;
+  }
 
   Future<void> loadCaptcha() async {
     _state = LoginState.loading;
     notifyListeners();
 
     try {
-      // Use the new UseCase instead of direct Service call
       final image = await _getCaptchaUseCase();
 
       if (image != null) {
@@ -69,7 +102,6 @@ class LoginViewModel extends ChangeNotifier {
         _state = LoginState.initial;
         notifyListeners();
 
-        // Auto-solve
         final solvedCode = await _captchaService.solve(image);
         if (solvedCode != null) {
           _captchaCode = solvedCode;
@@ -100,11 +132,9 @@ class LoginViewModel extends ChangeNotifier {
       bool success = false;
 
       if (manualCaptcha != null) {
-        // MANUAL LOGIN (Single Attempt)
         _logger.info("MİMARİ LOG: Manual Login requested.");
         success = await _loginUseCase(studentNumber, password, manualCaptcha);
       } else {
-        // AUTO LOGIN (Retry Logic in UseCase)
         _logger.info("MİMARİ LOG: Auto Login requested (Smart Retry).");
         success = await _autoLoginUseCase(studentNumber, password);
       }
@@ -124,7 +154,6 @@ class LoginViewModel extends ChangeNotifier {
     }
 
     notifyListeners();
-    // Refresh captcha if failed so user can try again
     if (_state == LoginState.failure) {
       loadCaptcha();
     }

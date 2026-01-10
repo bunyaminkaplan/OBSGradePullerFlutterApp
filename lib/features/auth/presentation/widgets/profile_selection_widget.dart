@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../widgets/login/animated_jitter_button.dart';
+import 'animated_jitter_button.dart';
 
 class ProfileTriggerButton extends StatefulWidget {
   final VoidCallback onShowMenu;
@@ -227,15 +227,6 @@ class _ProfileSelectionOverlayState extends State<ProfileSelectionOverlay> {
         });
       }
     }
-  }
-
-  void _exitIsolation() {
-    _isolationTimer?.cancel();
-    setState(() {
-      _isolatedIndex = null;
-      _swipeOffset = 0.0;
-      _actionTriggered = false;
-    });
   }
 
   @override

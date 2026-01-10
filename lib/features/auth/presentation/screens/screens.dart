@@ -3,4 +3,4 @@
 library;
 
 // TODO: Migration tamamlandığında bu export yeni dosyaya yönlendirilecek
-export '../../../../ui/login_screen.dart';
+export '../pages/login_page.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../viewmodels/login_view_model.dart';
+import '../viewmodels/login_view_model.dart';
 import 'login_manual_form.dart';
 import 'profile_selection_widget.dart';
 

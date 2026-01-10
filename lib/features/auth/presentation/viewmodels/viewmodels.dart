@@ -3,4 +3,4 @@
 library;
 
 // TODO: Migration tamamlandığında bu export yeni dosyaya yönlendirilecek
-export '../../../../viewmodels/login_view_model.dart';
+export '../viewmodels/login_view_model.dart';
