@@ -1,7 +1,7 @@
 import '../../services/storage_service.dart';
-import '../../domain/repositories/settings_repository.dart';
+import '../../features/settings/domain/repositories/settings_repository.dart';
 
-class SettingsRepositoryImpl implements ISettingsRepository {
+class SettingsRepositoryImpl implements SettingsRepository {
   final StorageService _storageService;
 
   // Hardcoded constants moved here or in AppConstants

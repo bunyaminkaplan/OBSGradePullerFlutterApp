@@ -1,38 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/core/utils/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 
-// Services
-import 'services/captcha_service.dart';
-
-import 'services/theme_service.dart';
+// Core
 import 'core/services/logger_service.dart';
 
-// Data Layer
+// Features - Auth Domain
+import 'features/auth/domain/repositories/auth_repository.dart';
+import 'features/auth/domain/usecases/login_usecase.dart';
+import 'features/auth/domain/usecases/logout_usecase.dart';
+import 'features/auth/domain/usecases/get_captcha_usecase.dart';
+import 'features/auth/domain/usecases/auto_login_usecase.dart';
+
+// Features - Grades Domain
+import 'features/grades/domain/repositories/grades_repository.dart';
+import 'features/grades/domain/usecases/get_grades_usecase.dart';
+import 'features/grades/domain/usecases/get_grade_details_usecase.dart';
+
+// Features - Settings Domain
+import 'features/settings/domain/repositories/settings_repository.dart';
+import 'features/settings/domain/toggle_university_usecase.dart';
+
+// Data Layer (geçici - sonraki aşamada taşınacak)
 import 'data/datasources/auth_remote_data_source.dart';
 import 'data/datasources/grades_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
-
-// Domain Layer
-import 'domain/repositories/auth_repository.dart';
-import 'domain/repositories/settings_repository.dart';
-import 'domain/repositories/grades_repository.dart';
-import 'domain/usecases/login_usecase.dart';
-import 'domain/usecases/get_captcha_usecase.dart';
-import 'domain/usecases/auto_login_usecase.dart';
-import 'domain/usecases/toggle_university_usecase.dart';
-import 'domain/usecases/get_grades_usecase.dart';
-import 'domain/usecases/get_grade_details_usecase.dart';
-import 'services/storage_service.dart';
 import 'data/repositories/settings_repository_impl.dart';
 import 'data/repositories/grades_repository_impl.dart';
 
-// Presentation Layer
+// Services (geçici - sonraki aşamada taşınacak)
+import 'services/captcha_service.dart';
+import 'services/storage_service.dart';
+import 'services/theme_service.dart';
+
+// Presentation (geçici - sonraki aşamada taşınacak)
 import 'viewmodels/login_view_model.dart';
 import 'viewmodels/grades_view_model.dart';
-
 import 'ui/login_screen.dart';
 
 void main() {
@@ -81,7 +87,7 @@ void main() {
         ProxyProvider<AuthRemoteDataSource, AuthRepository>(
           update: (_, dataSource, __) => AuthRepositoryImpl(dataSource),
         ),
-        ProxyProvider<GradesRemoteDataSource, IGradesRepository>(
+        ProxyProvider<GradesRemoteDataSource, GradesRepository>(
           update: (_, dataSource, __) => GradesRepositoryImpl(dataSource),
         ),
 
@@ -93,20 +99,21 @@ void main() {
           update: (_, repo, __) => GetCaptchaUseCase(repo),
         ),
         ProxyProvider2<AuthRepository, CaptchaService, AutoLoginUseCase>(
-          update: (context, repo, captchaService, __) => AutoLoginUseCase(
-            repo,
-            captchaService,
-            context.read<LoggerService>(),
-          ),
+          update: (context, repo, captchaService, __) =>
+              AutoLoginUseCase(repo, captchaService),
+        ),
+
+        ProxyProvider<AuthRepository, LogoutUseCase>(
+          update: (_, repo, __) => LogoutUseCase(repo),
         ),
 
         // Settings & Storage
         Provider<StorageService>(create: (_) => StorageService()),
-        ProxyProvider<StorageService, ISettingsRepository>(
+        ProxyProvider<StorageService, SettingsRepository>(
           update: (_, storage, __) => SettingsRepositoryImpl(storage),
         ),
         ProxyProvider2<
-          ISettingsRepository,
+          SettingsRepository,
           AuthRepository,
           ToggleUniversityUseCase
         >(
@@ -114,10 +121,10 @@ void main() {
               ToggleUniversityUseCase(settingsRepo, authRepo),
         ),
 
-        ProxyProvider<IGradesRepository, GetGradesUseCase>(
+        ProxyProvider<GradesRepository, GetGradesUseCase>(
           update: (_, repo, __) => GetGradesUseCase(repo),
         ),
-        ProxyProvider<IGradesRepository, GetGradeDetailsUseCase>(
+        ProxyProvider<GradesRepository, GetGradeDetailsUseCase>(
           update: (_, repo, __) => GetGradeDetailsUseCase(repo),
         ),
 
@@ -125,6 +132,7 @@ void main() {
         ChangeNotifierProvider<LoginViewModel>(
           create: (context) => LoginViewModel(
             loginUseCase: context.read<LoginUseCase>(),
+            logoutUseCase: context.read<LogoutUseCase>(),
             getCaptchaUseCase: context.read<GetCaptchaUseCase>(),
             autoLoginUseCase: context.read<AutoLoginUseCase>(),
             toggleUniversityUseCase: context.read<ToggleUniversityUseCase>(),

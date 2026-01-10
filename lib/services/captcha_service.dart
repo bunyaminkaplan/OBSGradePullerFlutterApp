@@ -4,16 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import '../core/constants.dart';
-import '../domain/services/captcha_service_interface.dart';
+import '../features/captcha/domain/services/captcha_solver.dart';
 import '../core/services/logger_service.dart';
 
-class CaptchaService implements ICaptchaService {
+class CaptchaService implements CaptchaSolver {
   Interpreter? _interpreter;
   Interpreter? _interpreterOld;
-  final LoggerService _logger; // Logger eklendi
+  final LoggerService _logger;
 
-  CaptchaService([LoggerService? logger])
-    : _logger = logger ?? LoggerService(); // Constructor update
+  CaptchaService([LoggerService? logger]) : _logger = logger ?? LoggerService();
 
   @override
   Future<void> loadModel() async {
@@ -30,7 +29,7 @@ class CaptchaService implements ICaptchaService {
 
   /// Main function to solve captcha
   @override
-  Future<String?> solveCaptcha(Uint8List imageBytes) async {
+  Future<String?> solve(Uint8List imageBytes) async {
     if (_interpreter == null || _interpreterOld == null) await loadModel();
     if (_interpreter == null || _interpreterOld == null) return null;
 

@@ -1,9 +1,10 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../domain/usecases/login_usecase.dart';
-import '../domain/usecases/get_captcha_usecase.dart';
-import '../domain/usecases/auto_login_usecase.dart';
-import '../domain/usecases/toggle_university_usecase.dart';
+import '../features/auth/domain/usecases/login_usecase.dart';
+import '../features/auth/domain/usecases/logout_usecase.dart';
+import '../features/auth/domain/usecases/get_captcha_usecase.dart';
+import '../features/auth/domain/usecases/auto_login_usecase.dart';
+import '../features/settings/domain/toggle_university_usecase.dart';
 import '../services/captcha_service.dart';
 import '../core/services/logger_service.dart';
 
@@ -11,6 +12,7 @@ enum LoginState { initial, loading, success, failure }
 
 class LoginViewModel extends ChangeNotifier {
   final LoginUseCase _loginUseCase;
+  final LogoutUseCase _logoutUseCase;
   final GetCaptchaUseCase _getCaptchaUseCase;
   final AutoLoginUseCase _autoLoginUseCase;
   final ToggleUniversityUseCase _toggleUniversityUseCase;
@@ -24,12 +26,14 @@ class LoginViewModel extends ChangeNotifier {
 
   LoginViewModel({
     required LoginUseCase loginUseCase,
+    required LogoutUseCase logoutUseCase,
     required GetCaptchaUseCase getCaptchaUseCase,
     required AutoLoginUseCase autoLoginUseCase,
     required ToggleUniversityUseCase toggleUniversityUseCase,
     required CaptchaService captchaService,
     LoggerService? logger, // Opsiyonel parametre
   }) : _loginUseCase = loginUseCase,
+       _logoutUseCase = logoutUseCase,
        _getCaptchaUseCase = getCaptchaUseCase,
        _autoLoginUseCase = autoLoginUseCase,
        _toggleUniversityUseCase = toggleUniversityUseCase,
@@ -42,7 +46,7 @@ class LoginViewModel extends ChangeNotifier {
   }
 
   Future<String> toggleUniversity() async {
-    final name = await _toggleUniversityUseCase.execute();
+    final name = await _toggleUniversityUseCase();
     await loadCaptcha(); // Reload captcha from new university
     return name;
   }
@@ -58,7 +62,7 @@ class LoginViewModel extends ChangeNotifier {
 
     try {
       // Use the new UseCase instead of direct Service call
-      final image = await _getCaptchaUseCase.execute();
+      final image = await _getCaptchaUseCase();
 
       if (image != null) {
         _captchaImage = image;
@@ -66,7 +70,7 @@ class LoginViewModel extends ChangeNotifier {
         notifyListeners();
 
         // Auto-solve
-        final solvedCode = await _captchaService.solveCaptcha(image);
+        final solvedCode = await _captchaService.solve(image);
         if (solvedCode != null) {
           _captchaCode = solvedCode;
         } else {
@@ -98,15 +102,11 @@ class LoginViewModel extends ChangeNotifier {
       if (manualCaptcha != null) {
         // MANUAL LOGIN (Single Attempt)
         _logger.info("MİMARİ LOG: Manual Login requested.");
-        success = await _loginUseCase.execute(
-          studentNumber,
-          password,
-          manualCaptcha,
-        );
+        success = await _loginUseCase(studentNumber, password, manualCaptcha);
       } else {
         // AUTO LOGIN (Retry Logic in UseCase)
         _logger.info("MİMARİ LOG: Auto Login requested (Smart Retry).");
-        success = await _autoLoginUseCase.execute(studentNumber, password);
+        success = await _autoLoginUseCase(studentNumber, password);
       }
 
       if (success) {
@@ -132,7 +132,7 @@ class LoginViewModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _loginUseCase.logout();
+    await _logoutUseCase();
     _state = LoginState.initial;
     notifyListeners();
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
-import '../domain/entities/grade_entity.dart';
+import '../features/grades/domain/entities/grade.dart';
 import '../viewmodels/grades_view_model.dart';
 import '../viewmodels/login_view_model.dart';
 import 'login_screen.dart';
@@ -227,7 +227,7 @@ class _GradesScreenState extends State<GradesScreen> {
 }
 
 class GradeCard extends StatelessWidget {
-  final GradeEntity grade; // Updated to Entity
+  final Grade grade; // Updated to Entity
   const GradeCard({super.key, required this.grade});
 
   Color _getStatusColor(String letter) {

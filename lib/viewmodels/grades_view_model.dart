@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../domain/usecases/get_grades_usecase.dart';
-import '../domain/usecases/get_grade_details_usecase.dart';
-import '../domain/entities/grade_entity.dart';
-import '../domain/entities/term_entity.dart';
+import '../features/grades/domain/usecases/get_grades_usecase.dart';
+import '../features/grades/domain/usecases/get_grade_details_usecase.dart';
+import '../features/grades/domain/entities/grade.dart';
+import '../features/grades/domain/entities/term.dart';
 import 'package:flutter/foundation.dart'; // For debugPrint
 
 enum GradesState { initial, loading, success, failure }
@@ -14,8 +14,8 @@ class GradesViewModel extends ChangeNotifier {
   GradesState _state = GradesState.initial;
   String _errorMessage = '';
 
-  List<GradeEntity> _grades = [];
-  List<TermEntity> _terms = [];
+  List<Grade> _grades = [];
+  List<Term> _terms = [];
   String _currentTermId = '';
 
   GradesViewModel({
@@ -26,8 +26,8 @@ class GradesViewModel extends ChangeNotifier {
 
   GradesState get state => _state;
   String get errorMessage => _errorMessage;
-  List<GradeEntity> get grades => _grades;
-  List<TermEntity> get terms => _terms;
+  List<Grade> get grades => _grades;
+  List<Term> get terms => _terms;
   String get currentTermId => _currentTermId;
 
   Future<void> loadGrades({String? termId}) async {
@@ -35,7 +35,7 @@ class GradesViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _getGradesUseCase.execute(termId: termId);
+      final result = await _getGradesUseCase(termId: termId);
       _grades = result.grades;
       _terms = result.terms;
       _currentTermId = result.currentTermId;
@@ -64,7 +64,7 @@ class GradesViewModel extends ChangeNotifier {
       if (grade.status.isNotEmpty && grade.status.contains("btnIstatistik")) {
         debugPrint("   ✅ Fetching stats for: ${grade.courseName}");
         try {
-          GradeEntity detailed = await _getGradeDetailsUseCase.execute(grade);
+          Grade detailed = await _getGradeDetailsUseCase(grade);
           _grades[i] = detailed;
           debugPrint(
             "   📊 Got: midtermAvg=${detailed.midtermAvg}, finalAvg=${detailed.finalAvg}",
@@ -86,12 +86,12 @@ class GradesViewModel extends ChangeNotifier {
     // Optimistic update or loading indicator could be handled here
     // For now, we just fetch and update the single item
     try {
-      GradeEntity grade = _grades[index];
+      Grade grade = _grades[index];
       // Check if already loaded? (optional)
       if (grade.midtermAvg != null && grade.midtermAvg != "-")
         return; // Already fetched
 
-      GradeEntity detailed = await _getGradeDetailsUseCase.execute(grade);
+      Grade detailed = await _getGradeDetailsUseCase(grade);
       _grades[index] = detailed;
       notifyListeners();
     } catch (e) {

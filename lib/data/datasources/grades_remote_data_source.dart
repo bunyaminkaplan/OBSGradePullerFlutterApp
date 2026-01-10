@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:html/parser.dart' show parse;
-import '../../models/grade.dart';
+import '../../features/grades/domain/entities/grade.dart';
 import '../../core/services/logger_service.dart';
 import 'auth_remote_data_source.dart'; // For baseUrl sync
 
