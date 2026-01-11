@@ -1,6 +1,4 @@
-/// Auth Feature - Presentation Screens
-/// GEÇICI: Migration tamamlanana kadar mevcut dosyalara referans
+/// Auth Presentation Screens
 library;
 
-// TODO: Migration tamamlandığında bu export yeni dosyaya yönlendirilecek
 export '../pages/login_page.dart';

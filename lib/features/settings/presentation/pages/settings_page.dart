@@ -92,7 +92,9 @@ class _SettingsPageState extends State<SettingsPage> {
       text,
       style: TextStyle(
         fontSize: 13,
-        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+        color: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
       ),
     );
   }
@@ -224,7 +226,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         fontSize: 12,
                         color: Theme.of(
                           context,
-                        ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                     ),
                   ],

@@ -97,11 +97,12 @@ class _LoginManualFormState extends State<LoginManualForm> {
         );
       }
 
-      // Navigate to GradesScreen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const GradesPage()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const GradesPage()),
+        );
+      }
     } else if (!success && mounted) {
       _captchaController.clear();
       // Error is handled by SnackBar in view model consumer or logic above

@@ -1,5 +1,4 @@
-/// Grades Feature - Presentation Screens
-/// GEÇICI: Migration tamamlanana kadar mevcut dosyalara referans
+/// Grades Presentation Screens
 library;
 
 export '../pages/grades_page.dart';

@@ -87,8 +87,9 @@ class GradesViewModel extends ChangeNotifier {
     try {
       Grade grade = _grades[index];
       // Check if already loaded? (optional)
-      if (grade.midtermAvg != null && grade.midtermAvg != "-")
+      if (grade.midtermAvg != null && grade.midtermAvg != "-") {
         return; // Already fetched
+      }
 
       Grade detailed = await _getGradeDetailsUseCase(grade);
       _grades[index] = detailed;

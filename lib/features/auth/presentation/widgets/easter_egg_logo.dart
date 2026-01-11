@@ -172,7 +172,7 @@ class _EasterEggLogoState extends State<EasterEggLogo>
                 Colors.blueAccent,
                 List.from(_intensities),
               ),
-              child: Container(width: 180, height: 180),
+              child: const SizedBox(width: 180, height: 180),
             ),
             Container(
               padding: const EdgeInsets.all(16),

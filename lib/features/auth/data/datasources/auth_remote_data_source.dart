@@ -52,7 +52,7 @@ class AuthRemoteDataSource {
         if (src != null) {
           String fullUrl = "$_baseUrl/oibs/captcha/CaptchaImg.aspx";
           if (!src.startsWith("..")) {
-            fullUrl = "$_baseUrl/oibs/" + src.replaceAll("../", "");
+            fullUrl = "$_baseUrl/oibs/${src.replaceAll("../", "")}";
           }
           _logger.debug("MİMARİ LOG: Captcha Full URL: $fullUrl");
 

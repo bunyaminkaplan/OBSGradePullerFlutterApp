@@ -19,7 +19,7 @@ class GradesRemoteDataSource {
   // ViewState paylaşımı için Auth kaynağına erişim gerekebilir veya
   // Dio cookie'leri yönettiği için sadece URL ve Input bilgisi yeterlidir.
   // Inputlar sayfadan sayfaya değişir, o yüzden her istekte yeniden parse edilir.
-  Map<String, String> _hiddenInputs = {};
+  final Map<String, String> _hiddenInputs = {};
 
   // Use AuthRemoteDataSource's baseUrl for consistency
   String get _baseUrl => _authDataSource.baseUrl;
@@ -321,12 +321,15 @@ class GradesRemoteDataSource {
         _logger.debug("Stats Row Text: $t"); // DEBUG LOG
 
         // Detect Context headers
-        if (t.contains("Ara Sınav") || t.contains("Vize"))
+        if (t.contains("Ara Sınav") || t.contains("Vize")) {
           currentContext = "Vize";
-        if (t.contains("Yarıyıl Sonu") || t.contains("Final"))
+        }
+        if (t.contains("Yarıyıl Sonu") || t.contains("Final")) {
           currentContext = "Final";
-        if (t.contains("Bütünleme") || t.contains("Büt"))
+        }
+        if (t.contains("Bütünleme") || t.contains("Büt")) {
           currentContext = "Büt";
+        }
 
         // Check for Average Row
         if (t.toLowerCase().contains("not ortalaması")) {

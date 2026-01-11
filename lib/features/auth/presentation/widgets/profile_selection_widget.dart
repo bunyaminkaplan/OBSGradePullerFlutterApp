@@ -436,7 +436,7 @@ class _ProfileSelectionOverlayState extends State<ProfileSelectionOverlay> {
                 );
               },
               child: TweenAnimationBuilder<double>(
-                key: ValueKey('hover_$index\_$isHovered'),
+                key: ValueKey('hover_${index}_$isHovered'),
                 tween: Tween<double>(begin: 0.0, end: isHovered ? 1.0 : 0.0),
                 duration: isHovered
                     ? const Duration(seconds: 3) // Slow build-up during hover
