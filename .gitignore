@@ -37,6 +37,12 @@
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 
+# Android Keys & Sensitive Data
+key.properties
+**/*.jks
+**/*.keystore
+.env
+
 # iOS/XCode related
 **/ios/**/*.mode1v3
 **/ios/**/*.mode2v3
@@ -74,3 +80,4 @@
 # Custom Ignores
 debug_captcha.py
 migrate_working_dir/
+project_rules.md
